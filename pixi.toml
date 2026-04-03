@@ -6,6 +6,12 @@ platforms = ["osx-arm64"]
 version = "0.1.0"
 
 [tasks]
+download-childes-data = "python dataset/download_talkbank_data.py --corpus-name childes --subset-name Eng-AAE Eng-NA Eng-UK"
+download-phonbank-data = "python dataset/download_talkbank_data.py --corpus-name phon --subset-name Eng-NA Eng-UK"
 
 [dependencies]
 python = "3.12.*"
+
+[pypi-dependencies]
+browser-cookie3 = ">=0.20.1, <0.21"
+tbdb = { git = "https://github.com/TalkBank/TBDBpy" }
