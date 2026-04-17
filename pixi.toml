@@ -8,9 +8,12 @@ version = "0.1.0"
 [tasks]
 download-childes-data = "python dataset/download_talkbank_data.py --corpus-name childes --subset-name Eng-AAE Eng-NA Eng-UK"
 download-phonbank-data = "python dataset/download_talkbank_data.py --corpus-name phon --subset-name Eng-NA Eng-UK"
+extract-childes-metadata = "python dataset/extract_metadata.py"
 
 [dependencies]
 python = "3.12.*"
+pandas = ">=3.0.2,<4"
+tqdm = ">=4.67.3,<5"
 
 [pypi-dependencies]
 browser-cookie3 = ">=0.20.1, <0.21"

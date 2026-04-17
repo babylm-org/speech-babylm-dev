@@ -1,0 +1,393 @@
+# Note: Base implementation is copied from
+# This file includes code from https://github.com/babylm/babylm_data_preprocessing/blob/main/preprocess_childes.py
+# Copyright (c) BabyLM Team and Contributors.
+# Released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+import argparse
+import re
+from pathlib import Path
+
+import pandas as pd
+from tqdm import tqdm
+
+# DOCUMENTATION: """https://talkbank.org/0info/manuals/CHAT.pdf"""
+
+# ====== REQUIRED BY SPEC ======
+TIME_RE = re.compile(r"\x15(\d+)_(\d+)\x15")
+
+# ====== EXISTING SETTINGS ======
+INCLUDE_TAGS = [
+    "%act",
+    "%flo",
+    "%exp",
+    "%par",
+    "%com",
+    "%gpx",
+    "%sit",
+    "%int",
+    "%add",
+]
+
+DEBUG = False
+INCLUDE_SPKR = False
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Extract metadata from TALKBank transcripts (.cha), including speaker roles and ages, "
+        )
+    )
+    parser.add_argument(
+        "--media_dir",
+        default="/Volumes/data/childes_media",
+        help="Root directory for all downloaded files.",
+    )
+    parser.add_argument(
+        "--transcript_dir",
+        default="/Volumes/data/childes_transcript",
+        help="Root directory for all transcript files.",
+    )
+    parser.add_argument(
+        "--output_path",
+        default="output/childes_metadata.csv",
+        help="Path to the output CSV file.",
+    )
+    return parser.parse_args()
+
+
+def get_record(filename: str):
+    text = ""
+    metadata = ""
+    participants = {}
+    for l in open(filename, encoding="utf-8", errors="ignore"):
+        if l.startswith("@Situation"):
+            text += l
+        if l.startswith("@Participants"):
+            participants.update(
+                {
+                    kv.split()[0].strip(): kv.split()[1]
+                    for kv in l.split("\t")[1].split(",")
+                }
+            )
+        elif l.startswith("@"):
+            metadata += l
+        elif l.startswith("*"):
+            text += l
+        elif l.startswith("%"):
+            if l.split("\t")[0][:-1] in INCLUDE_TAGS:
+                text += l
+        elif not l.startswith("\t"):
+            # 仕様外の行（必要ならログ）
+            pass
+    return {
+        "filename": filename,
+        "text": text,
+        "metadata": metadata,
+        "participants": participants,
+    }
+
+
+def process_text(textstring: str) -> str:
+    # remove time stamps like \x15...\x15
+    textstring = re.sub(r".*", "", textstring)
+    original = textstring
+
+    # NON SPEECH ROWS
+    if DEBUG:
+        textstring = re.sub(
+            r"(\*\w+:\t)([^\n])+\n%(act|exp|par|com|gpx|sit):\t<bef> (.*?)(\n|^)",
+            r"\1[\4]\2\5\2",
+            textstring,
+        )
+        textstring = re.sub(
+            r"(\*\w+:\t)([^\n])+\n%(act|exp|par|com|gpx|sit):\t<aft> (.*?)(\n|^)",
+            r"\1\2[\4]\5\2",
+            textstring,
+        )
+    else:
+        textstring = re.sub(
+            r"(\*\w+:\t)([^\n])+\n%(act|exp|par|com|gpx|sit):\t<bef> (.*?)(\n|^)",
+            r"\1[\4]\2\5",
+            textstring,
+        )
+        textstring = re.sub(
+            r"(\*\w+:\t)([^\n])+\n%(act|exp|par|com|gpx|sit):\t<aft> (.*?)(\n|^)",
+            r"\1\2[\4]\5",
+            textstring,
+        )
+    textstring = re.sub(
+        r"%(act|exp|par|com|gpx|sit):\t(.*?)(\n|^)", r"[\2]\3", textstring
+    )
+    textstring = re.sub(r"@Situation:\t(.*?)(\n|^)", r"[\1]\2", textstring)
+
+    # CHILDES annotations cleanup
+    textstring = re.sub(r"\[\*[^\]]+?\]", "", textstring)
+    textstring = re.sub(r"\[:+.*?\]", "", textstring)
+    textstring = re.sub(r"&=0[\w:]+", "", textstring)
+    textstring = re.sub(r"&=(\S+)", r"[\1]", textstring)
+    for _ in range(5):
+        textstring = re.sub(r"\[(\S+)[:_](.*?)\]", r"[\1 \2]", textstring)
+
+    textstring = re.sub(r"@[\w:\$\*]+", "", textstring)
+    textstring = re.sub(r"&\+[\w]+", "", textstring)
+    textstring = re.sub(r"&\-", "", textstring)
+    textstring = re.sub(r"&\~", "", textstring)
+
+    textstring = re.sub(r"\(\w+?\)", "'", textstring)
+    textstring = re.sub(r"0\w*", "", textstring)
+
+    textstring = re.sub(r"@l", "", textstring)
+    textstring = re.sub(r"(\w)\_", r"\1 ", textstring)
+
+    textstring = re.sub(r"[‡„]", "", textstring)
+    textstring = re.sub(r"[↑↓]", "", textstring)
+    textstring = re.sub(r"[ˈˌ≠](\w)", r"\1", textstring)
+    textstring = re.sub(r"(\w)[:\^]", r"\1", textstring)
+
+    textstring = re.sub(r"&\*\w+:\w+", "", textstring)
+    textstring = re.sub(r"\[\^.*?\]", "", textstring)
+    textstring = re.sub(r"\(\d*\.+\d*\)", "", textstring)
+    textstring = re.sub(r"&\{.*&\}", "", textstring)
+
+    textstring = re.sub(r"\+\.\.\.", "...", textstring)
+    textstring = re.sub(r"\+\.\.\?", "...?", textstring)
+    textstring = re.sub(r"\+!\?", "!?", textstring)
+    textstring = re.sub(r"\+/\.", "...", textstring)
+    textstring = re.sub(r"\+/\?", "...?", textstring)
+    textstring = re.sub(r"\+//\.", "...", textstring)
+    textstring = re.sub(r"\+//\?", "...?", textstring)
+    textstring = re.sub(r"\+\.", "", textstring)
+    textstring = re.sub(r"\+\"/\.", "", textstring)
+    textstring = re.sub(r"\+\"\.", "", textstring)
+
+    textstring = re.sub(r"\+\"(.*?)($|\n)", r'"\1"\2', textstring)
+    textstring = re.sub(r"\+(\^|,|\+)", "", textstring)
+
+    textstring = re.sub(r"\[=!\s?(.*)\]", r"[\1]", textstring)
+    textstring = re.sub(r"\[!+\]", "", textstring)
+    textstring = re.sub(r"\[#.*\]", "", textstring)
+    textstring = re.sub(r"\[:.*\]", "", textstring)
+
+    textstring = re.sub(r"\[=\s?(.*?)\]", r"[\1]", textstring)
+    textstring = re.sub(r"\[=\?.*?\]", "", textstring)
+    textstring = re.sub(r"\[%\s?(.*?)\]", r"[\1]", textstring)
+    textstring = re.sub(r"\[\?\]", "", textstring)
+
+    textstring = re.sub(r"\[[<>]\d?\]", "", textstring)
+    textstring = re.sub(r"\+<", "", textstring)
+    textstring = re.sub(r"(<.+?>|\S+) \[/\]", "", textstring)
+    textstring = re.sub(r"(<.+?>|\S+) \[//\]", "", textstring)
+    textstring = re.sub(r"\[/\]", "", textstring)
+    textstring = re.sub(r"\[//\]", "", textstring)
+    textstring = re.sub(r"(<(.+?)>|\S+) \[///\]", r"\1 ...", textstring)
+    textstring = re.sub(r"(<(.+?)>|\S+) \[/-\]", r"\1 ...", textstring)
+    textstring = re.sub(r"(<(.+?)>|\S+) \[/\?\]", r"", textstring)
+    textstring = re.sub(r"(<(.+?)>|\S+) \[(e|\+ exc)\]", r"\1 ...", textstring)
+    textstring = re.sub(r"\[\^c.*?\]", "", textstring)
+
+    textstring = re.sub(r"\[\*\]", "", textstring)
+
+    textstring = re.sub(r"( \[\+ \w+\])+\s*[\"\s]?($|\n)", r"\2", textstring)
+    textstring = re.sub(r"\t(\[\- \w +\] )+", "", textstring)
+
+    textstring = re.sub(r"[<>]", "", textstring)
+
+    # CLEANUP
+    textstring = re.sub(r"  +", " ", textstring)
+    textstring = re.sub(r"\t +", "\t", textstring)
+    textstring = re.sub(r" +([\.,\?!])", r"\1", textstring)
+    textstring = re.sub(r"(^|\n)([\*%]\w+)", r"\1\2:", textstring)
+
+    textstring = re.sub(
+        r"(\*\w+:\t)(xxx|yyy|www|0|\.)\s?[\.\?]? ?(\[.*\])\s?[\.\?]? ?($|\n)",
+        r"\1\3\4",
+        textstring,
+    )
+    if DEBUG:
+        textstring = re.sub(
+            r"\*\w+:\t(xxx|yyy|www|0|\.)\s?[\.\?]? ?($|\n)", r"____\2", textstring
+        )
+    else:
+        textstring = re.sub(
+            r"\*\w+:\t(xxx|yyy|www|0|\.)\s?[\.\?]? ?($|\n)", "", textstring
+        )
+
+    if not INCLUDE_SPKR:
+        textstring = re.sub(r"\*\w+:\t", "", textstring)
+
+    lines = textstring.split("\n")
+    textstring2 = ""
+    l_prev = ""
+    for l in lines:
+        if l == l_prev:
+            continue
+        textstring2 += l + "\n"
+        l_prev = l
+
+    textstring2 = re.sub(r"\[= :\d+ \]", "", textstring2)
+
+    if DEBUG:
+        return "\n".join(
+            a + "\n" + b for a, b in zip(textstring2.split("\n"), original.split("\n"))
+        )
+    else:
+        return textstring2
+
+
+def _ms_to_sec(ms: int) -> float:
+    return ms / 1000.0
+
+
+def _sanitize_utt_id(s: str) -> str:
+    s = s.replace("\\", "/")
+    s = re.sub(r"[^0-9A-Za-z_\-\/\.]", "_", s)
+    s = s.replace("/", "_")
+    return s
+
+
+def _extract_speaker(line: str) -> str | None:
+    match = re.match(r"^\*(\w+):", line)
+    if not match:
+        return None
+    return match.group(1)
+
+
+def parse_participants_line(line: str) -> tuple[dict, dict]:
+    # Appropriate case (Child / Adult):
+    # @Participants:  CHI Target_Child, MOT Mother
+    # Inappropriate case (Unknown):
+    # @Participants:  PAR0 Participant, PAR1 Participant, PAR2 Participant
+    participants_raw_role = {}
+    participants_role = {}
+    parts = line.split("\t")[1].split(",")
+    for part in parts:
+        label, participant = part.strip().split(" ", 1)
+        participants_raw_role[label] = participant
+        if "Child" in participant:
+            participants_role[label] = "Child"
+        else:
+            participants_role[label] = "Adult"
+    if all(participants_role[p] == "Adult" for p in participants_role):
+        participants_role = {p: "Unknown" for p in participants_role}
+    return participants_raw_role, participants_role
+
+
+def parse_id_line(line: str) -> tuple[str, str | None]:
+    # @ID:  eng|Bernstein|NAN|||||Investigator|||
+    # @ID:  eng|Bernstein|CHI|1;09.|female|TD|MC|Target_Child|||
+    parts = line.split("\t")[1].split("|")
+    label = parts[2]
+    age_str = parts[3]
+    m = re.match(r"(\d+;\d+)\.", age_str)
+    if not m:
+        return (label, None)
+    year_month = m.group(1)
+    return (label, year_month)
+
+
+def iter_childes_metadata_rows_for_cha(cha_path: Path, audio_rel_path: str):
+    audio_path_field = audio_rel_path
+
+    with open(cha_path, "r", encoding="utf-8", errors="ignore") as f:
+        age_mapping = {}
+        for i, line in enumerate(f):
+            # From the @Participants line, extract the role of the speaker
+            if line.startswith("@Participants"):
+                participants_raw_role, participants_role = parse_participants_line(line)
+                continue
+
+            # From the @ID line, extract the child's age
+            if line.startswith("@ID"):
+                label, age = parse_id_line(line)
+                if age is not None:
+                    age_mapping[label] = age
+                continue
+
+            if not line.startswith("*"):
+                continue
+
+            speaker = _extract_speaker(line)
+            if not speaker:
+                continue
+            age = age_mapping.get(speaker, "Unknown")
+            raw_role = participants_raw_role.get(speaker, "Unknown")
+            role = participants_role.get(speaker, "Unknown")
+
+            m = TIME_RE.search(line)
+            if not m:
+                # Skip lines without time information, as start/end are required by the spec
+                continue
+
+            start_ms = int(m.group(1))
+            end_ms = int(m.group(2))
+            start_sec = _ms_to_sec(start_ms)
+            end_sec = _ms_to_sec(end_ms)
+
+            cleaned = process_text(line).strip()
+
+            if not cleaned:
+                continue
+
+            base = _sanitize_utt_id(Path(audio_rel_path).with_suffix("").as_posix())
+            utt_id = f"{base}_{start_ms}_{end_ms}_{i}"
+
+            yield {
+                "utt_id": utt_id,
+                "path": audio_path_field,
+                "speaker": speaker,
+                "start_sec": start_sec,
+                "end_sec": end_sec,
+                "text": cleaned,
+                "raw_role": raw_role,
+                "role": role,
+                "age": age,
+            }
+
+
+def main():
+    args = parse_args()
+    media_root = Path(args.media_dir)
+    transcript_root = Path(args.transcript_dir)
+    out_path = Path(args.output_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    mp3_files = list(media_root.rglob("*.mp3"))
+
+    rows = []
+    for mp3_path in tqdm(mp3_files, desc="Scanning mp3"):
+        rel_path = mp3_path.relative_to(media_root).as_posix()
+
+        cha_path = transcript_root / Path(rel_path).with_suffix(".cha")
+        if not cha_path.exists():
+            continue
+
+        rows.extend(list(iter_childes_metadata_rows_for_cha(cha_path, rel_path)))
+
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "utt_id",
+            "path",
+            "speaker_label",
+            "start_sec",
+            "end_sec",
+            "text",
+            "raw_role",
+            "role",
+            "age",
+        ],
+    )
+    df.to_csv(out_path, index=False)
+    total_words = df["text"].str.split().str.len().sum()
+    total_duration = (df["end_sec"] - df["start_sec"]).sum()
+    print(f"Wrote: {out_path}")
+    print(f"Total utterances: {len(df)}")
+    print(f"Total words: {total_words}")
+    print(f"Total duration [sec]: {total_duration:.2f}")
+    print(f"Total duration [hour]: {total_duration / 3600:.2f}")
+
+
+if __name__ == "__main__":
+    main()
