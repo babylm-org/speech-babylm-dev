@@ -2,7 +2,7 @@
 authors = ["gifdog97 <omusubset.s@gmail.com>"]
 channels = ["conda-forge"]
 name = "speech-babylm-dev"
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
