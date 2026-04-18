@@ -36,7 +36,7 @@ def parse_args():
     )
     parser.add_argument(
         "--output-dir",
-        default="/Volumes/data",
+        default="data/",
         help="Root directory for all downloaded files.",
     )
     return parser.parse_args()
