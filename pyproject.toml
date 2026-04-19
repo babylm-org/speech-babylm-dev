@@ -1,0 +1,13 @@
+[tool.ruff.lint]
+select = [
+    "ALL", # include all the rules, including new ones
+]
+ignore = [
+    "D",        # all docstring rules
+    "ANN",      # all type annotation rules
+    "PLR0913",  # too many arguments
+    "FBT",      # boolean argument rules
+    "RET501",   # unnecessary return statement
+    "COM812",   # formatter issue
+    "T201",     # Checks for print statements
+]

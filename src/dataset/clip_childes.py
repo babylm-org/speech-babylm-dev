@@ -14,7 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description=(
             "Extract metadata from TALKBank transcripts (.cha), including speaker roles and ages, "
-        )
+        ),
     )
     parser.add_argument(
         "--metadata_path",
@@ -49,11 +49,12 @@ def _write_one(args):
     os.makedirs(os.path.dirname(out), exist_ok=True)
     sf.write(out, data, SR, subtype="PCM_16")
     print(f"Wrote: {out} (duration: {e - s:.2f}s, frames: {i1 - i0})")
-    return
 
 
 def parse_segments(
-    metadata_path: Path, output_dir: Path, media_dir: Path
+    metadata_path: Path,
+    output_dir: Path,
+    media_dir: Path,
 ) -> dict[Path, list[tuple[float, float, str]]]:
     items = defaultdict(list)
     with open(metadata_path) as f:

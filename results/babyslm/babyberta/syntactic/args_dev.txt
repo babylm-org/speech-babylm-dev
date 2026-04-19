@@ -1,0 +1,10 @@
+{
+  "input_path": "data/babyslm/syntactic",
+  "mode": [
+    "dev"
+  ],
+  "model": "BabyBERTa-1",
+  "task": "syntactic",
+  "out": "results/babyslm/babyberta/",
+  "out_file": "results/babyslm/babyberta/"
+}

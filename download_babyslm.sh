@@ -10,3 +10,10 @@ rm data/babyslm/lexical/dev.zip
 rm data/babyslm/syntactic/dev.zip
 # fix name
 mv data/babyslm/syntactic/dev_16 data/babyslm/syntactic/dev
+
+# download test (might be long)
+# wget https://cognitive-ml.fr/downloads/baby-slm/evaluation_sets/lexical/test.zip -P <DATA_LOCATION>/babyslm/lexical
+# wget https://cognitive-ml.fr/downloads/baby-slm/evaluation_sets/syntactic/test.zip -P <DATA_LOCATION>/babyslm/syntactic
+
+# unzip <DATA_LOCATION>/babyslm/lexical/test.zip -d <DATA_LOCATION>/babyslm/lexical
+# unzip <DATA_LOCATION>/babyslm/syntactic/test.zip -d <DATA_LOCATION>/babyslm/syntactic

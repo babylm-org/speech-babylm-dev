@@ -37,7 +37,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description=(
             "Extract metadata from TALKBank transcripts (.cha), including speaker roles and ages, "
-        )
+        ),
     )
     parser.add_argument(
         "--media_dir",
@@ -69,7 +69,7 @@ def get_record(filename: str):
                 {
                     kv.split()[0].strip(): kv.split()[1]
                     for kv in l.split("\t")[1].split(",")
-                }
+                },
             )
         elif l.startswith("@"):
             metadata += l
@@ -118,7 +118,9 @@ def process_text(textstring: str) -> str:
             textstring,
         )
     textstring = re.sub(
-        r"%(act|exp|par|com|gpx|sit):\t(.*?)(\n|^)", r"[\2]\3", textstring
+        r"%(act|exp|par|com|gpx|sit):\t(.*?)(\n|^)",
+        r"[\2]\3",
+        textstring,
     )
     textstring = re.sub(r"@Situation:\t(.*?)(\n|^)", r"[\1]\2", textstring)
 
@@ -207,11 +209,15 @@ def process_text(textstring: str) -> str:
     )
     if DEBUG:
         textstring = re.sub(
-            r"\*\w+:\t(xxx|yyy|www|0|\.)\s?[\.\?]? ?($|\n)", r"____\2", textstring
+            r"\*\w+:\t(xxx|yyy|www|0|\.)\s?[\.\?]? ?($|\n)",
+            r"____\2",
+            textstring,
         )
     else:
         textstring = re.sub(
-            r"\*\w+:\t(xxx|yyy|www|0|\.)\s?[\.\?]? ?($|\n)", "", textstring
+            r"\*\w+:\t(xxx|yyy|www|0|\.)\s?[\.\?]? ?($|\n)",
+            "",
+            textstring,
         )
 
     if not INCLUDE_SPKR:
@@ -232,8 +238,7 @@ def process_text(textstring: str) -> str:
         return "\n".join(
             a + "\n" + b for a, b in zip(textstring2.split("\n"), original.split("\n"))
         )
-    else:
-        return textstring2
+    return textstring2
 
 
 def _ms_to_sec(ms: int) -> float:
@@ -270,7 +275,7 @@ def parse_participants_line(line: str) -> tuple[dict, dict]:
         else:
             participants_role[label] = "Adult"
     if all(participants_role[p] == "Adult" for p in participants_role):
-        participants_role = {p: "Unknown" for p in participants_role}
+        participants_role = dict.fromkeys(participants_role, "Unknown")
     return participants_raw_role, participants_role
 
 
@@ -290,7 +295,7 @@ def parse_id_line(line: str) -> tuple[str, str | None]:
 def iter_childes_metadata_rows_for_cha(cha_path: Path, audio_rel_path: str):
     audio_path_field = audio_rel_path
 
-    with open(cha_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(cha_path, encoding="utf-8", errors="ignore") as f:
         age_mapping = {}
         for i, line in enumerate(f):
             # From the @Participants line, extract the role of the speaker

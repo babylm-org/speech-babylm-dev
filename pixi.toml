@@ -15,8 +15,11 @@ run-babyslm-example = "python -m src.babyslm.run_example"
 python = "3.12.*"
 pandas = ">=3.0.2,<4"
 tqdm = ">=4.67.3,<5"
+transformers = ">=5.5.4,<6"
+pyprind = ">=2.11.3,<3"
 
 [pypi-dependencies]
 browser-cookie3 = ">=0.20.1, <0.21"
 tbdb = { git = "https://github.com/TalkBank/TBDBpy" }
 soundfile = ">=0.13.1, <0.14"
+torch = "*"

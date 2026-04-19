@@ -15,7 +15,7 @@ def parse_args():
         description=(
             "Download TALKBank CHILDES transcripts and their corresponding media "
             "using TBDB metadata and browser cookies."
-        )
+        ),
     )
     parser.add_argument(
         "--browser",
@@ -47,7 +47,7 @@ def build_session(browser_name: str) -> requests.Session:
         cookie_loader = getattr(browser_cookie3, browser_name)
     except AttributeError as exc:
         raise ValueError(
-            f"Unsupported browser_cookie3 backend: {browser_name}"
+            f"Unsupported browser_cookie3 backend: {browser_name}",
         ) from exc
 
     session = requests.Session()
@@ -83,7 +83,12 @@ def download_dataset_zip(
     response = session.get(url, allow_redirects=True, stream=True)
     ctype = response.headers.get("Content-Type", "")
     print(
-        "  status:", response.status_code, "final_url:", response.url, "ctype:", ctype
+        "  status:",
+        response.status_code,
+        "final_url:",
+        response.url,
+        "ctype:",
+        ctype,
     )
 
     if "text/html" in ctype:
@@ -110,7 +115,10 @@ def download_dataset_zip(
 
 
 def media_relative_path(
-    corpus_name: str, subset_name: str, rel_path: str, media_type: str
+    corpus_name: str,
+    subset_name: str,
+    rel_path: str,
+    media_type: str,
 ):
     if media_type == "audio":
         media_rel = f"{rel_path}.mp3"
@@ -183,14 +191,18 @@ def main():
         dataset_names = set()
         for row in transcripts["data"]:
             rel_path = Path(row[idx_path]).relative_to(
-                f"{args.corpus_name}/{subset_name}"
+                f"{args.corpus_name}/{subset_name}",
             )
             dataset_names.add(rel_path.parts[0])
 
         for dataset_name in sorted(dataset_names):
             url = f"{TRANSCRIPT_BASE_URL.format(args.corpus_name)}/{subset_name}/{dataset_name}.zip"
             download_dataset_zip(
-                session, url, subset_name, dataset_name, transcript_root
+                session,
+                url,
+                subset_name,
+                dataset_name,
+                transcript_root,
             )
 
         for row in transcripts["data"]:
