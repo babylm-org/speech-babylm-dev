@@ -1,0 +1,7 @@
+type,n,score,std
+adj_noun_order,320,0.8938,0.3086
+anaphor_gender_agreement,194,0.9742,0.1589
+anaphor_number_agreement,389,0.9126,0.2828
+determiner_noun_agreement,209,0.6794,0.4678
+noun_verb_agreement,719,0.8971,0.3041
+noun_verb_order,329,0.9970,0.0551

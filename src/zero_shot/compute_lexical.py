@@ -281,78 +281,25 @@ def write_final(acc, filename):
     print(f"  > Wrote {filename}")
 
 
-def evaluate_lexical(output, gold, predicted, kind, task_name="lexical", is_text=False):
-    dataset = pathlib.Path(gold)
-    submission = pathlib.Path(predicted)
-    output = pathlib.Path(output)
+def evaluate_lexical(gold_file, submission_file, output_dir, is_text=False):
+    gold_file = pathlib.Path(gold_file)
+    submission_file = pathlib.Path(submission_file)
+    output = pathlib.Path(output_dir)
 
-    print(f"Evaluating lexical {kind}...")
-    gold_file = dataset / task_name / kind / "gold.csv"
-    submission_file = submission / task_name / f"{kind}.txt"
+    print(f"Evaluating lexical...")
 
     all_trials, by_pair, by_frequency, by_length = evaluate(
         gold_file, submission_file, is_text=is_text
     )
 
     output.mkdir(exist_ok=True, parents=True)
-    write_csv(all_trials, output / f"score_lexical_{kind}_all_trials.csv")
-    write_csv(by_pair, output / f"score_lexical_{kind}_by_pair.csv")
-    write_csv(by_frequency, output / f"score_lexical_{kind}_by_frequency.csv")
-    write_csv(by_length, output / f"score_lexical_{kind}_by_length.csv")
+    write_csv(all_trials, output / f"score_lexical_all_trials.csv")
+    write_csv(by_pair, output / f"score_lexical_by_pair.csv")
+    write_csv(by_frequency, output / f"score_lexical_by_frequency.csv")
+    write_csv(by_length, output / f"score_lexical_by_length.csv")
 
     # write final score
     write_final(
-        by_pair["score"].mean(), output / f"overall_accuracy_lexical_{kind}.txt"
+        by_pair["score"].mean(), output / f"overall_accuracy_lexical.txt"
     )
     print(by_pair["score"].mean())
-
-
-def main(argv):
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        required=True,
-        help="Path where to store the output files",
-    )
-    parser.add_argument(
-        "-g", "--gold", type=str, required=True, help="Path where the gold files lies."
-    )
-    parser.add_argument(
-        "-p",
-        "--predicted",
-        type=str,
-        required=True,
-        help="Path where the pseudo-probabilities lie.",
-    )
-    parser.add_argument(
-        "-k",
-        "--kind",
-        type=str,
-        required=True,
-        choices=["dev", "test"],
-        help="Do we need to look for the dev, or the test files?",
-    )
-    parser.add_argument(
-        "--is_text",
-        action="store_true",
-        help="If activated, will only keep one voice (for text-based language models).",
-    )
-    parser.add_argument(
-        "--task_name",
-        type=str,
-        default="lexical",
-        help="Name of folder where to look for gold and hypothesis files.",
-    )
-    args = parser.parse_args(argv)
-
-    evaluate_lexical(
-        args.output, args.gold, args.predicted, args.kind, args.task_name, args.is_text
-    )
-
-
-if __name__ == "__main__":
-    # execute only if run as a script
-    args = sys.argv[1:]
-    main(args)

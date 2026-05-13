@@ -1,101 +1,50 @@
 """Adapted from ZeroSpeech 2021"""
 
-import argparse
 import pathlib
-import sys
-
 import pandas
 
 
 def load_data(gold_file, submission_file, is_text=False):
-    """Returns the data required for evaluation as a pandas data frame
-
-    Each line of the returned data frame contains a pair of (correct,
-    incorrect) sentences and has the following columns: 'id', 'voice', 'type',
-    'sentence', 'score sentence', 'non sentence', 'score non sentence'.
-
-    Parameters
-    ----------
-    gold_file : path
-        The gold file for the lexical dataset (test or dev).
-    submission_file : path
-        The submission corresponding to the provided gold file.
-
-    Returns
-    -------
-    data : pandas.DataFrame
-        The data ready for evaluation
-
-    Raise
-    -----
-    ValueError
-        If the input files cannot be opened or in case of data mismatch between
-        the two files.
-
-    """
-    # ensures the two input files are here
-    for input_file in (gold_file, submission_file):
-        if not pathlib.Path(input_file).is_file():
-            raise ValueError(f"file not found: {input_file}")
+    gold_file = pathlib.Path(gold_file)
+    submission_file = pathlib.Path(submission_file)
+    if not gold_file.is_file():
+        raise ValueError(f"file not found: {gold_file}")
+    if not submission_file.is_file():
+        raise ValueError(f"file not found: {submission_file}")
 
     # load them as data frames indexed by filenames
-    gold = pandas.read_csv(gold_file, header=0, index_col="filename")
+    gold = pandas.read_csv(gold_file)
 
+    score = pandas.read_csv(submission_file)[["id", "filename", "score", "voice"]]
+    # voice doesn't matter for stext LMs
+    # just get a random voic
     if is_text:
         voices = gold["voice"].unique()
         gold = gold[gold["voice"] == voices[0]]
+        score = score[score["voice"] == voices[0]]
 
-    score = pandas.read_csv(
-        submission_file,
-        sep=" ",
-        header=None,
-        names=["filename", "score"],
-        usecols=[0, 1],
-        index_col="filename",
-    )
-
-    # ensures the filenames in gold and submission are the same
-    if set(gold.index) != set(score.index):
-        has_less_files = set(gold.index) - set(score.index)
-        has_more_files = set(score.index) - set(gold.index)
-        print("MismatchError:", file=sys.stderr)
-        if len(has_more_files) > 0:
-            print("submission has extra files", file=sys.stderr)
-            print(f"extra files: {has_more_files}", file=sys.stderr)
-
-        if len(has_less_files) > 0:
-            print("submission is missing files", file=sys.stderr)
-            print(f"missing files: {has_less_files}:", file=sys.stderr)
-
-        sys.exit(1)
-
-    if is_text:
-        voices = gold["voice"].unique()
-        gold = gold[gold["voice"] == voices[0]]
-        # same number of lines is expected
-        data = pandas.concat([gold, score], axis=1)
-    else:
-        # merge by filename
-        data = pandas.merge(gold, score, on="filename")
-
-    data.reset_index(drop=True, inplace=True)
-
-    if len(data) != len(gold):
-        raise ValueError("len(data) should be equal to len(gold). Aborting.")
-
-    # going from a sentence per line to a pair (grammatical sentence, ungrammatical sentence) per line
+    gold['merge_id'] = gold['id'].astype(str) + "_" + gold['filename']
+    score['merge_id'] = score['id'].astype(str) + "_" + score['filename']
+    score.drop(columns=["filename", "voice", "id"], inplace=True)
+    # laboriously create pairs of correct and incorrect sentences
+    data = pandas.merge(gold, score, on="merge_id", how="inner")
+    print(data)
+    data = data.reset_index(drop=True)
+    correct = data.loc[data["correct"] == 1].reset_index().rename(lambda x: "s_" + x, axis=1)
+    wrong = data.loc[data["correct"] == 0].reset_index().rename(lambda x: "ns_" + x, axis=1)
     data = pandas.concat(
         [
-            data.loc[data["correct"] == 1]
-            .reset_index()
-            .rename(lambda x: "s_" + x, axis=1),
-            data.loc[data["correct"] == 0]
-            .reset_index()
-            .rename(lambda x: "ns_" + x, axis=1),
+            correct,
+            wrong,
         ],
         axis=1,
     )
-
+    assert (data["ns_id"] == data["s_id"]).all(), (
+        "Mismatch between sentence and non sentence ids."
+    )
+    assert (data["ns_voice"] == data["s_voice"]).all(), (
+        "Mismatch between sentence and non sentence voices."
+    )
     data.drop(
         [
             "s_index",
@@ -110,7 +59,6 @@ def load_data(gold_file, submission_file, is_text=False):
         axis=1,
         inplace=True,
     )
-
     data.rename(
         {
             "s_id": "id",
@@ -125,7 +73,6 @@ def load_data(gold_file, submission_file, is_text=False):
         axis=1,
         inplace=True,
     )
-
     if data[["score sentence", "score non sentence"]].isna().sum().sum():
         print(data[data["score sentence"].isna()])
         print(data[data["score non sentence"].isna()])
@@ -245,77 +192,19 @@ def write_final(acc, filename):
     print(f"  > Wrote {filename}")
 
 
-def evaluate_syntactic(
-    output, gold, predicted, kind, task_name="syntactic", is_text=False
-):
-    dataset = pathlib.Path(gold)
-    submission = pathlib.Path(predicted)
-    output = pathlib.Path(output)
+def evaluate_syntactic(output_dir, gold_file, submission_file, is_text=False):
+    gold_file = pathlib.Path(gold_file)
+    submission_file = pathlib.Path(submission_file)
+    output = pathlib.Path(output_dir)
 
-    print(f"Evaluating syntactic {kind}...")
-    gold_file = dataset / task_name / kind / "gold.csv"
-    submission_file = submission / task_name / f"{kind}.txt"
-
+    print("Evaluating syntactic...")
     all_trials, by_pair, by_type = evaluate(gold_file, submission_file, is_text=is_text)
 
     output.mkdir(exist_ok=True, parents=True)
-    write_csv(all_trials, output / f"score_syntactic_{kind}_all_trials.csv")
-    write_csv(by_pair, output / f"score_syntactic_{kind}_by_pair.csv")
-    write_csv(by_type, output / f"score_syntactic_{kind}_by_type.csv")
+    write_csv(all_trials, output / "score_syntactic_all_trials.csv")
+    write_csv(by_pair, output / "score_syntactic_by_pair.csv")
+    write_csv(by_type, output / "score_syntactic_by_type.csv")
 
     # write final score
-    write_final(
-        by_pair["score"].mean(), output / f"overall_accuracy_syntactic_{kind}.txt"
-    )
+    write_final(by_pair["score"].mean(), output / "overall_accuracy_syntactic.txt")
     print(by_pair["score"].mean())
-
-
-def main(argv):
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        required=True,
-        help="Path where to store the output files",
-    )
-    parser.add_argument(
-        "-g", "--gold", type=str, required=True, help="Path where the gold files lies."
-    )
-    parser.add_argument(
-        "-p",
-        "--predicted",
-        type=str,
-        required=True,
-        help="Path where the pseudo-probabilities lie.",
-    )
-    parser.add_argument(
-        "-k",
-        "--kind",
-        type=str,
-        required=True,
-        choices=["dev", "test"],
-        help="Do we need to look for the dev, or the test files?",
-    )
-    parser.add_argument(
-        "--task_name",
-        type=str,
-        default="syntactic",
-        help="Name of folder where to look for gold and hypothesis files.",
-    )
-    parser.add_argument(
-        "--is_text",
-        action="store_true",
-        help="If activated, will only keep one voice (for text-based language models).",
-    )
-    args = parser.parse_args(argv)
-
-    evaluate_syntactic(
-        args.output, args.gold, args.predicted, args.kind, args.task_name, args.is_text
-    )
-
-
-if __name__ == "__main__":
-    # execute only if run as a script
-    args = sys.argv[1:]
-    main(args)
