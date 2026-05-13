@@ -6,7 +6,7 @@ import browser_cookie3
 import requests
 import tbdb
 
-TRANSCRIPT_BASE_URL = "https://git.talkbank.org/{}/data"
+TRANSCRIPT_BASE_URL = "https://talkbank.org/data"
 MEDIA_BASE_URL = "https://media.talkbank.org/"
 
 
@@ -196,7 +196,7 @@ def main():
             dataset_names.add(rel_path.parts[0])
 
         for dataset_name in sorted(dataset_names):
-            url = f"{TRANSCRIPT_BASE_URL.format(args.corpus_name)}/{subset_name}/{dataset_name}.zip"
+            url = f"{TRANSCRIPT_BASE_URL}/{args.corpus_name}/{subset_name}/{dataset_name}?f=zip"
             download_dataset_zip(
                 session,
                 url,
