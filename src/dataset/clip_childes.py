@@ -51,6 +51,13 @@ def _write_one(args):
     i0 = int(SR * s)
     i1 = int(SR * e)
     data = ARR[i0:i1]
+    if len(data) == 0:
+        print(
+            f"Skip empty segment: {out} "
+            f"(duration: {e - s:.6f}s, frames: {i1 - i0}, "
+            f"i0={i0}, i1={i1}, audio_len={len(ARR)})"
+        )
+        return
     os.makedirs(os.path.dirname(out), exist_ok=True)
     sf.write(out, data, SR, subtype="PCM_16")
     print(f"Wrote: {out} (duration: {e - s:.2f}s, frames: {i1 - i0})")
