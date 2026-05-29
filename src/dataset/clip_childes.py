@@ -31,6 +31,11 @@ def parse_args():
         default="/Volumes/data/childes_clipped",
         help="Path to the output directory for clipped audio files.",
     )
+    parser.add_argument(
+        "--jobs",
+        default=64,
+        help="The number of jobs",
+    )
     return parser.parse_args()
 
 
@@ -77,7 +82,7 @@ def main():
     args = parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    segs_dict = parse_segments(args.metadata_path, args.output_dir, args.media_dir)
+    segs_dict = parse_segments(Path(args.metadata_path), Path(args.output_dir), Path(args.media_dir))
 
     for wav_path, segs in segs_dict.items():
         # Decode audio file once
