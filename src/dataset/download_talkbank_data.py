@@ -70,6 +70,10 @@ def download_dataset_zip(
     dataset_name: str,
     transcript_root: Path,
 ) -> None:
+    # "ComptonPater" of PhonBank is somehow not downloadable, so we skip it for now.
+    if "ComptonPater" in dataset_name:
+        print("SKIP ComptonPater dataset:", dataset_name)
+        return
     subset_root = transcript_root / subset_name
     dataset_root = subset_root / dataset_name
     if dataset_root.exists():
@@ -107,9 +111,9 @@ def download_dataset_zip(
 
     try:
         with zipfile.ZipFile(zip_path, "r") as zf:
-            zf.extractall(subset_root)
+            zf.extractall(dataset_root)
         zip_path.unlink()
-        print("  extracted transcript dataset to", subset_root)
+        print("  extracted transcript dataset to", dataset_root)
     except zipfile.BadZipFile:
         print("  ERROR: bad transcript zip, keeping", zip_path)
 
@@ -125,6 +129,7 @@ def media_relative_path(
     elif media_type == "video":
         media_rel = f"{rel_path}.mp4"
     else:
+        print("SKIP media: no media", media_type)
         return None
 
     prefix = f"{corpus_name}/{subset_name}/"
