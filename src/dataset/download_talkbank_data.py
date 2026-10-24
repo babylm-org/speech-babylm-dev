@@ -35,6 +35,11 @@ def parse_args():
         help="One or more subset names to download.",
     )
     parser.add_argument(
+        "--transcription-only",
+        action="store_true",
+        help="Download only transcripts, not media files.",
+    )
+    parser.add_argument(
         "--output-dir",
         default="data/",
         help="Root directory for all downloaded files.",
@@ -210,6 +215,10 @@ def main():
                 transcript_root,
             )
 
+        if args.transcription_only:
+            continue
+
+        # Download media
         for row in transcripts["data"]:
             download_media_file(
                 session=session,
