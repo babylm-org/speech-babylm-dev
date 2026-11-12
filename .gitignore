@@ -1,5 +1,9 @@
 # Custom
 data/
+# ABX: downloaded weights, extracted activations, scores
+/models/
+/activations/
+/results/
 
 
 # Byte-compiled / optimized / DLL files

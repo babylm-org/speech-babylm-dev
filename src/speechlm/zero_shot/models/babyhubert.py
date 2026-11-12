@@ -1,0 +1,37 @@
+import torch
+from huggingface_hub import hf_hub_download
+from torchaudio.models import hubert_pretrain_base
+from transformers import Wav2Vec2FeatureExtractor
+
+from speechlm.zero_shot.models.base import (
+    SpeechLM,
+    capture_inputs,
+    name_transformer_layers,
+)
+
+
+class BabyHuBERT(SpeechLM):
+    """BabyHuBERT (https://huggingface.co/MarvinLvn/BabyHuBERT), a torchaudio HuBERT."""
+
+    def __init__(self, model_dir):
+        # as in the model card
+        model = hubert_pretrain_base(num_classes=500)
+        checkpoint = hf_hub_download(
+            "MarvinLvn/BabyHuBERT", "BabyHuBERT.ckpt", cache_dir=model_dir
+        )
+        state_dict = torch.load(checkpoint, map_location="cpu")["state_dict"]
+        model.load_state_dict(
+            {name.replace("model.", ""): v for name, v in state_dict.items()}
+        )
+        super().__init__(model.wav2vec2, Wav2Vec2FeatureExtractor(), frame_rate=50)
+
+    @torch.no_grad()
+    def get_representations(self, audio, attention_mask=None):
+        encoder = self.model.encoder
+        modules = {
+            "CNN": encoder.feature_projection,
+            "embeds": encoder.transformer.layers[0],
+        }
+        with capture_inputs(modules) as captured:
+            layers, _ = self.model.extract_features(audio)
+        return {**captured, **name_transformer_layers(layers)}
