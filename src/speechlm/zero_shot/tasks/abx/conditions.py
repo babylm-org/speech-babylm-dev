@@ -2,7 +2,7 @@
 
 Each benchmark is a subclass of ABXCondition, and its instances are its conditions: within or
 across speakers, and the random baseline, e.g. TriphoneABX("within") or
-ProsodicABX("across", random=True). Their data is downloaded in task.py.
+ProsodicABX("across", random=True). Their data is built by scripts/eval/build_eval_data.py.
 """
 
 import math

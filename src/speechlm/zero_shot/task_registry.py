@@ -1,12 +1,15 @@
-from .tasks.abx.task import PROSODIC_SETS, TRIPHONE_SPLITS, ProsodicEval, TriphoneEval
+from .tasks.abx.task import ProsodicEval, TriphoneEval
 from .tasks.babyslm.task import BabySLMEval
 from .tasks.base import EvalTask
 
 TASKS: dict[str, EvalTask] = {
     task.name: task
     for task in [
-        *(TriphoneEval(split) for split in TRIPHONE_SPLITS),
-        *(ProsodicEval(name) for name in PROSODIC_SETS),
+        TriphoneEval("dev-clean"),
+        TriphoneEval("dev-other"),
+        ProsodicEval("stress"),
+        ProsodicEval("stress_syn"),
+        ProsodicEval("stress_kokoro"),
         BabySLMEval("lexical"),
         BabySLMEval("syntactic"),
     ]

@@ -7,6 +7,7 @@ Usage:
     python -m scripts.eval.prepare_eval --models facebook/wav2vec2-base cpc --tasks stress
     python -m scripts.eval.prepare_eval --models slprl/slam --tasks babyslm-lexical babyslm-syntactic
     python -m scripts.eval.prepare_eval --models --tasks triphone-dev-clean  # data only
+    python -m scripts.eval.prepare_eval --fast  # only the data of the fast evaluation
 """
 
 import argparse
@@ -37,13 +38,18 @@ def main():
         choices=list(TASKS),
         help="Tasks of src/speechlm/zero_shot/task_registry.py to fetch the data of; none to skip",
     )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Only fetch the tasks' data for the fast evaluation (run_eval --fast)",
+    )
     args = parser.parse_args()
 
     for model in args.models:
         print(f"==> Model: {model}", flush=True)
         get_model(model, MODEL_DIR)  # loading fetches what the model is missing
     for task in args.tasks:
-        get_task(task).setup()
+        get_task(task).setup(fast_only=args.fast)
     print("Done.")
 
 

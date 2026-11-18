@@ -5,7 +5,8 @@ The packages are listed in `requirements.txt`, and the project supports "Python>
 - with pixi `pixi install`.
 
 To set up the evaluation, run `pixi run python -m scripts.eval.prepare_eval --models MODELS --tasks TASKS`, where models and tasks are separated by spaces.
-The script downloads the evaluation data and model weights of the specified models and tasks.
+Add `--fast` to download only the data of the fast evaluation (`run_eval --fast`), about a tenth of the full data.
+The script downloads the model weights and the evaluation data of the specified models and tasks. The evaluation data (audio and test items, for the full and the fast evaluation) is hosted on Hugging Face at [BabyLM-community/Speech-BabyLM-Evals](https://huggingface.co/datasets/BabyLM-community/Speech-BabyLM-Evals), so everyone evaluates on the same data.
 Without `--models` or `--tasks`, it downloads the default models and tasks, defined in `src/speechlm/zero_shot/config.py`:
 
 ```python
@@ -32,12 +33,12 @@ DEFAULT_TASKS = [
 
 ### Evaluation
 To evaluate models, run `pixi run python -m scripts.eval.run_eval --models MODELS --tasks TASKS` (with the same defaults). Optional arguments are:
-- `--fast`: evaluate on a fixed subset of each task, with fewer examples and speakers. 
+- `--fast`: evaluate on a fixed subset of each task, with fewer examples and speakers. The subsets are fixed, and part of the evaluation data on Hugging Face.
 - `--layers`: score only these layers in ABX, e.g. `--layers T6 T12` (they must exist in all specified models).
 - `--batch_size`: files per forward pass (default 16).
 - `--keep_activations`: don't delete model activations after ABX evaluation (WARNING: these can take up a lot of space).
 
-Evaluation data is stored in `data/`, model activations in `activations/` (deleted after evaluation, unless `--keep_activations` is given), and evaluation results in `results/<model>/<task>/`. Fast evaluation results are stored in a `<task>/fast/` subfolder.
+Evaluation data is stored in `data/evaluation_data/` (a copy of the Hugging Face repo, with the audio unzipped), model activations in `activations/` (deleted after evaluation, unless `--keep_activations` is given), and evaluation results in `results/<model>/<task>/`. Fast evaluation results are stored in a `<task>/fast/` subfolder. Each results folder has the per-item results (`.csv`), the metrics in `summary.json`, and the same metrics as tables in `summary.txt`.
 
 The folder structure of the evaluation pipeline is given below.
 
@@ -126,30 +127,25 @@ class MyModel(SpeechLM):
    - A new ABX contrast: add a subclass of `ABXCondition` in `tasks/abx/conditions.py`, setting what differs (`on`) and what is shared (`by`).
    - Minimal pairs scored by log probability: reuse `score_pairs` from `tasks/babyslm/evaluate.py`.
 
-1. Add `src/speechlm/zero_shot/tasks/my_task/task.py` with a subclass of `EvalTask` (`tasks/base.py`):
+1. Add `src/speechlm/zero_shot/tasks/my_task/task.py` with a subclass of `EvalTask` (`tasks/base.py`). Downloading the data (`setup()`) is inherited:
 
 ```python
-from speechlm.zero_shot.config import DATA_DIR
 from speechlm.zero_shot.tasks.base import EvalTask
 
 
 class MyTaskEval(EvalTask):
-    def __init__(self):
-        self.name = "my-task"
+    family = "my_task"  # its folder in the evaluation data
 
-    def setup(self):
-        # download and prepare the data under DATA_DIR / "my-task".
-        ...
-        self.make_fast()
-
-    def make_fast(self):
-        # write the fixed subset for --fast, if it does not exist
-        ...
+    def __init__(self, subset):
+        self.subset = subset  # its files there: <subset>.zip (the audio) and e.g. <subset>.csv
+        self.name = f"my-task-{subset}"
 
     def evaluate(self, model, batch_size=16, fast=False, **_):
-        out_dir = self.results_dir(model, fast)  # results/<model>/my-task/
+        out_dir = self.results_dir(model, fast)  # results/<model>/<task>/
         if (out_dir / "results.csv").exists():
             return  # results are skipped, so a failed run can be restarted
+        data = self.data_dir(fast) / f"{self.subset}.csv"  # in full_eval/ or fast_eval/
+        audio_dir = self.audio_dir(fast)  # the unzipped audio
         ...  # score the model, then write the results in out_dir
 ```
 
@@ -159,4 +155,6 @@ class MyTaskEval(EvalTask):
         MyTaskEval(),
 ```
 
-3. (Optional) Add your task to `DEFAULT_TASKS` in `src/speechlm/zero_shot/config.py` to run it by default.
+3. Add a `build_my_task(task)` function to `scripts/eval/build_eval_data.py` (and to its `BUILDERS`): it downloads the original data and writes the full and fast files of the task. Then build and upload them with `pixi run python -m scripts.eval.build_eval_data --tasks my-task-<subset> --upload`.
+
+4. (Optional) Add your task to `DEFAULT_TASKS` in `src/speechlm/zero_shot/config.py` to run it by default.

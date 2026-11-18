@@ -1,15 +1,17 @@
 from pathlib import Path
 
-# saved model weights uploaded to HF
-# TODO: move this to BabyLM-repo
-CHECKPOINT_REPO = "nikitastheo/speech-babylm-checkpoints"
+# mirrors of third-party model weights (CPC, MelHuBERT, Slam's k-means)
+CHECKPOINT_REPO = "BabyLM-community/Speech-BabyLM-Checkpoints"
+
+# the evaluation data (full_eval/ and fast_eval/), built by scripts/eval/build_eval_data.py
+EVAL_REPO = "BabyLM-community/Speech-BabyLM-Evals"
 
 # paths relative to root repo
 MODEL_DIR = Path("models")
-DATA_DIR = Path("data/eval")
+EVAL_DATA_DIR = Path("data/evaluation_data")  # EVAL_REPO's evaluation_data/, audio unzipped
+RAW_DATA_DIR = Path("data/raw")  # the original sources, only for build_eval_data.py
 ACTIVATION_DIR = Path("activations")
 RESULT_DIR = Path("results")
-ABX_ITEM_DIR = DATA_DIR / "items"
 
 # the default models of scripts/eval/
 DEFAULT_MODELS = [
