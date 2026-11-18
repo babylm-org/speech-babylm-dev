@@ -59,13 +59,11 @@ class Slam(HFModel):
         encoder = feature_extractor.model
         # raw waveforms, as slamkit reads them (the encoder's preprocessor_config would
         # normalize them); the attention mask gives get_log_probs the lengths
-        preprocessor = Wav2Vec2FeatureExtractor(
-            do_normalize=False, return_attention_mask=True
-        )
+        preprocessor = Wav2Vec2FeatureExtractor(do_normalize=False, return_attention_mask=True)
         samples_per_frame = math.prod(encoder.config.conv_stride)
         frame_rate = preprocessor.sampling_rate // samples_per_frame
         # skips HFModel.__init__, which loads its own model and preprocessor
-        SpeechLM.__init__(self, encoder, preprocessor, frame_rate)
+        SpeechLM.__init__(self, model_name, encoder, preprocessor, frame_rate)
 
     def to(self, device):
         # the LM and the tokeniser, which holds the encoder

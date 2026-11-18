@@ -14,7 +14,7 @@ class SpidR(SpeechLM):
     def __init__(self):
         # fetches the code and weights into torch.hub's own cache, not models/
         model = torch.hub.load("facebookresearch/spidr", "spidr_base")
-        super().__init__(model, Wav2Vec2FeatureExtractor(), frame_rate=50)
+        super().__init__("spidr", model, Wav2Vec2FeatureExtractor(), frame_rate=50)
 
     @torch.no_grad()
     def get_representations(self, audio, attention_mask=None):

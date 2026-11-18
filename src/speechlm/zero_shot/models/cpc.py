@@ -22,7 +22,7 @@ class CPC(SpeechLM):
         model.load_state_dict(load_file(checkpoint))
         preprocessor = Wav2Vec2FeatureExtractor(do_normalize=False)
         # 10 ms frames: the encoder strides multiply to 160 samples
-        super().__init__(model, preprocessor, frame_rate=100)
+        super().__init__("cpc", model, preprocessor, frame_rate=100)
 
     @torch.no_grad()
     def get_representations(self, audio, attention_mask=None):

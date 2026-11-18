@@ -4370,7 +4370,7 @@ packages:
 - pypi: ./
   name: speechlm
   version: 0.1.0
-  sha256: 095337f495254b1c7bc8b41d2d30c6f813af47c7588fab2441afc3d7325f55c6
+  sha256: f99eb9e1ca88d934b6452f027342e0b786897dfcd9e7ea5d17c46197eb9791a3
   requires_python: '>=3.12'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/statsmodels-0.15.0-np2py312h32d774f_2.conda
   sha256: c886a3c8257862ed49a931576a7b924185105ffe69e83e1d64a7c9dcb646c9cc

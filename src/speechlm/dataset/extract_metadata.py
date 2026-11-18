@@ -66,10 +66,7 @@ def get_record(filename: str):
             text += l
         if l.startswith("@Participants"):
             participants.update(
-                {
-                    kv.split()[0].strip(): kv.split()[1]
-                    for kv in l.split("\t")[1].split(",")
-                },
+                {kv.split()[0].strip(): kv.split()[1] for kv in l.split("\t")[1].split(",")},
             )
         elif l.startswith("@"):
             metadata += l

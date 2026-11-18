@@ -1,6 +1,6 @@
 """Score BabySLM's minimal pairs with a speech language model, as slamkit scores sWUGGY and
 sBLIMP (slamkit/metric/modelling_metric.py): a pair is right when its correct file has the
-higher log probability, and a tie counts half.
+higher log probability. A tie is broken at random (slamkit counts it half).
 """
 
 import numpy as np
@@ -19,21 +19,21 @@ def log_probs(model, wav_dir, filenames, batch_size=16):
         inputs = preprocessor(
             list(signals), sampling_rate=rates[0], padding=True, return_tensors="pt"
         ).to(model.device)
-        scores += model.get_log_probs(
-            inputs.input_values, inputs.get("attention_mask")
-        ).tolist()
+        scores += model.get_log_probs(inputs.input_values, inputs.get("attention_mask")).tolist()
     return scores
 
 
-def score_pairs(model, pairs, wav_dir, batch_size=16) -> pd.DataFrame:
-    """pairs (a pairs.csv) with each file's log probability and the pair's score: 1, 0.5 or 0."""
-    filenames = list(pd.unique(pairs[["filename_correct", "filename_wrong"]].values.ravel()))
-    by_file = dict(
-        zip(filenames, log_probs(model, wav_dir, filenames, batch_size), strict=True)
-    )
+def score_pairs(model, pairs, wav_dir, batch_size=16, seed=0) -> pd.DataFrame:
+    """pairs (a pairs.csv) with each file's log probability and the pair's score: 1 or 0.
+
+    seed: the random generator's, which breaks ties.
+    """
+    filenames = list(pd.unique(pairs[["filename_correct", "filename_wrong"]].to_numpy().ravel()))
+    by_file = dict(zip(filenames, log_probs(model, wav_dir, filenames, batch_size), strict=True))
     pairs = pairs.assign(
         log_prob_correct=pairs["filename_correct"].map(by_file),
         log_prob_wrong=pairs["filename_wrong"].map(by_file),
     )
     difference = pairs["log_prob_correct"] - pairs["log_prob_wrong"]
-    return pairs.assign(score=(np.sign(difference) + 1) / 2)
+    coin = np.random.default_rng(seed).integers(0, 2, len(pairs))
+    return pairs.assign(score=np.where(difference == 0, coin, difference > 0).astype(int))

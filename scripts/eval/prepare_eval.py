@@ -13,9 +13,9 @@ import argparse
 
 from dotenv import load_dotenv
 
-from speechlm.zero_shot.config import MODEL_DIR, MODELS
+from speechlm.zero_shot.config import DEFAULT_MODELS, DEFAULT_TASKS, MODEL_DIR
 from speechlm.zero_shot.model_registry import get_model
-from speechlm.zero_shot.task_registry import DEFAULT_TASKS, TASKS, get_task
+from speechlm.zero_shot.task_registry import TASKS, get_task
 
 load_dotenv()  # HF_TOKEN
 
@@ -27,7 +27,7 @@ def main():
     parser.add_argument(
         "--models",
         nargs="*",
-        default=MODELS,
+        default=DEFAULT_MODELS,
         help="Models as accepted by src/speechlm/zero_shot/model_registry.py; none to skip",
     )
     parser.add_argument(
@@ -43,7 +43,7 @@ def main():
         print(f"==> Model: {model}", flush=True)
         get_model(model, MODEL_DIR)  # loading fetches what the model is missing
     for task in args.tasks:
-        get_task(task).download()
+        get_task(task).setup()
     print("Done.")
 
 

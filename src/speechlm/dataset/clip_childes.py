@@ -89,7 +89,9 @@ def main():
     args = parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    segs_dict = parse_segments(Path(args.metadata_path), Path(args.output_dir), Path(args.media_dir))
+    segs_dict = parse_segments(
+        Path(args.metadata_path), Path(args.output_dir), Path(args.media_dir)
+    )
 
     for wav_path, segs in segs_dict.items():
         # Decode audio file once

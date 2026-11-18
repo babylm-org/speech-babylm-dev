@@ -6,6 +6,7 @@ Representations are named "CNN", "embeds" (the input to the transformer) and "T1
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
+from pathlib import Path
 
 import torch
 
@@ -13,15 +14,16 @@ import torch
 class SpeechLM(ABC):
     """A loaded speech model. Its constructor fetches whatever it is missing.
 
-    name: the model's name in results, set by model_registry.get_model.
+    name: the model's name in results, the last part of its name, e.g. "slam" for "slprl/slam".
     device: where the model is, set by to().
     """
 
     name: str
     device: str | torch.device = "cpu"
 
-    def __init__(self, model: torch.nn.Module, preprocessor: Callable, frame_rate: int):
+    def __init__(self, name: str, model: torch.nn.Module, preprocessor: Callable, frame_rate: int):
         """frame_rate: representation frames per second of audio."""
+        self.name = Path(name).name
         self.model = model.eval()
         self.preprocessor = preprocessor
         self.frame_rate = frame_rate
@@ -68,16 +70,13 @@ def capture_inputs(modules: dict[str, torch.nn.Module]):
 
         return hook
 
-    handles = [
-        module.register_forward_pre_hook(save_as(name))
-        for name, module in modules.items()
-    ]
+    handles = [module.register_forward_pre_hook(save_as(name)) for name, module in modules.items()]
     try:
         yield captured
     finally:
         for handle in handles:
             handle.remove()
-    
+
 
 def name_transformer_layers(layers: Iterable[torch.Tensor]) -> dict[str, torch.Tensor]:
     return {f"T{i}": activations for i, activations in enumerate(layers, start=1)}

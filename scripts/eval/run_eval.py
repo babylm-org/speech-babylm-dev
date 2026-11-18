@@ -23,9 +23,9 @@ import traceback
 
 import torch
 
-from speechlm.zero_shot.config import MODEL_DIR, MODELS
+from speechlm.zero_shot.config import DEFAULT_MODELS, DEFAULT_TASKS, MODEL_DIR
 from speechlm.zero_shot.model_registry import get_model
-from speechlm.zero_shot.task_registry import DEFAULT_TASKS, TASKS, get_task
+from speechlm.zero_shot.task_registry import TASKS, get_task
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
     parser.add_argument(
         "--models",
         nargs="+",
-        default=MODELS,
+        default=DEFAULT_MODELS,
         help="Models as accepted by src/speechlm/zero_shot/model_registry.py",
     )
     parser.add_argument(
@@ -57,10 +57,9 @@ def main():
         help="Fast evaluation: each task on its fixed sample, results kept apart",
     )
     parser.add_argument(
-        "--every_n_layers",
-        type=int,
-        default=1,
-        help="ABX: score every n-th layer (always including the first and last), e.g. 2 for about half",
+        "--layers",
+        nargs="+",
+        help="ABX: score only these layers, e.g. CNN T6 T12; all if not given",
     )
     parser.add_argument(
         "--keep_activations",
@@ -87,7 +86,7 @@ def main():
                     model,
                     batch_size=args.batch_size,
                     fast=args.fast,
-                    every_n_layers=args.every_n_layers,
+                    layers=args.layers,
                     keep_activations=args.keep_activations,
                 )
             except Exception:

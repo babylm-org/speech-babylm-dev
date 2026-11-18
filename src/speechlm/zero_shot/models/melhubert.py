@@ -41,9 +41,7 @@ class MelPreprocessor:
         attention_mask = torch.zeros(input_values.shape[:2])
         for i, feature in enumerate(features):
             attention_mask[i, : len(feature)] = 1
-        return BatchFeature(
-            {"input_values": input_values, "attention_mask": attention_mask}
-        )
+        return BatchFeature({"input_values": input_values, "attention_mask": attention_mask})
 
     def _features(self, signal):
         """Adapted from extract_fbank in
@@ -81,14 +79,12 @@ class MelHuBERT(SpeechLM):
             cache_dir=model_dir,
         )
         model.load_state_dict(load_file(checkpoint))
-        super().__init__(model, MelPreprocessor(), frame_rate=50)
+        super().__init__("melhubert", model, MelPreprocessor(), frame_rate=50)
 
     @torch.no_grad()
     def get_representations(self, audio, attention_mask=None):
         with capture_inputs({"embeds": self.model.encoder.layers[0]}) as captured:
-            *_, layers, _ = self.model(
-                audio, attention_mask, no_pred=True, get_hidden=True
-            )
+            *_, layers, _ = self.model(audio, attention_mask, no_pred=True, get_hidden=True)
         # the transformer takes (frames, batch, dim)
         return {
             "embeds": captured["embeds"].transpose(0, 1),

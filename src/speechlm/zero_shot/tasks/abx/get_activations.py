@@ -1,4 +1,3 @@
-import argparse
 import json
 import math
 from pathlib import Path
@@ -8,8 +7,7 @@ import torch
 import tqdm
 from dotenv import load_dotenv
 
-from speechlm.zero_shot.config import ACTIVATION_DIR, MODEL_DIR
-from speechlm.zero_shot.model_registry import get_model
+from speechlm.zero_shot.config import ACTIVATION_DIR
 from speechlm.zero_shot.models.base import SpeechLM
 
 load_dotenv()
@@ -87,31 +85,3 @@ def extract(
     info = {"model": model.name, "frequency": model.frame_rate, "layers": layers}
     (model_dir / "info.json").write_text(json.dumps(info, indent=2))
     print(f"Saved activations to {model_dir}")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "model_name_or_path", type=str, help="Path to the model or model name"
-    )
-    parser.add_argument("audio_dir", type=str, help="Path to the audio directory")
-    parser.add_argument(
-        "--file_format", type=str, default="flac", help="Audio file format"
-    )
-    parser.add_argument(
-        "--out_dir",
-        type=str,
-        default=ACTIVATION_DIR,
-        help="Where to save the activations",
-    )
-    parser.add_argument(
-        "--batch_size", type=int, default=16, help="Files per forward pass"
-    )
-    args = parser.parse_args()
-    extract(
-        get_model(args.model_name_or_path, MODEL_DIR).to(device),
-        audio_dir=args.audio_dir,
-        file_format=args.file_format,
-        out_dir=args.out_dir,
-        batch_size=args.batch_size,
-    )
