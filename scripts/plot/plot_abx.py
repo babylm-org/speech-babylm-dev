@@ -1,93 +1,133 @@
-"""Plot ABX accuracy per layer, one panel per model, as in internal_tools/tutorials/2_activation_analyses.ipynb.
+"""Plot ABX accuracy per layer in one figure: one row per task, one column per model, as in
+internal_tools/tutorials/2_activation_analyses.ipynb.
 
 Reads results/<model>/<task>/[fast/]abx_*.csv from run_eval: the line is the mean accuracy over
-contrasts (= the overall ABX accuracy), the band its 95% CI. Draws one figure per task,
-results/figures/[fast/]abx_<task>.png, and stacks them into abx_all.png.
+contrasts (= the overall ABX accuracy), the band its 95% CI. Saves results/figures/[fast/]abx.png.
 
 Usage:
     python -m scripts.plot.plot_abx
     python -m scripts.plot.plot_abx --fast
-    python -m scripts.plot.plot_abx --models wav2vec2-base hubert-base-ls960 --tasks triphone-dev-clean
+    python -m scripts.plot.plot_abx --models wav2vec2-base hubert-base-ls960 --tasks triphone-dev-clean stress
 """
 
 import argparse
+import re
 from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from speechlm.zero_shot.config import DEFAULT_MODELS, RESULT_DIR
+from speechlm.zero_shot.config import DEFAULT_MODELS, DEFAULT_TASKS, RESULT_DIR
 
 CONDITION_STYLES = {
     "within-speaker": dict(color=sns.color_palette("Paired")[3]),
     "across-speaker": dict(color=sns.color_palette("Paired")[2]),
     "random": dict(color="grey", dashes=(1, 2)),
 }
+# a model's panel title is wrapped at hyphens to lines of at most this many characters
+TITLE_WIDTH = 14
 
 
-def load_results(model_names, task="triphone-dev-clean", fast=False):
-    """Return {model name: DataFrame of all its abx_*.csv results for the task}."""
-    results = {}
-    for model_name in model_names:
-        results_dir = RESULT_DIR / model_name / task / ("fast" if fast else "")
-        files = sorted(results_dir.glob("abx_*.csv"))
-        if not files:
-            raise FileNotFoundError(f"No abx_*.csv results in {results_dir}")
-        results[model_name] = pd.concat([pd.read_csv(f) for f in files])
-    return results
+def find_results(fast=False):
+    """Return {(task, model name): DataFrame of all its abx_*.csv results}."""
+    files = {}
+    pattern = "*/*/fast/abx_*.csv" if fast else "*/*/abx_*.csv"
+    for csv in RESULT_DIR.glob(pattern):
+        task_dir = csv.parent.parent if fast else csv.parent
+        files.setdefault((task_dir.name, task_dir.parent.name), []).append(csv)
+    return {key: pd.concat(pd.read_csv(f) for f in sorted(csvs)) for key, csvs in files.items()}
 
 
-def plot_ABX_results(ABX_results: dict, title="", filepath=None, show=True):
-    """One panel per model, one line per condition present in that model's results."""
+def model_order(name):
+    """DEFAULT_MODELS first, in their order, then the rest with numbers by value (k128 < k1024)."""
+    order = [Path(m).name for m in DEFAULT_MODELS]
+    parts = [int(p) if p.isdigit() else p for p in re.split(r"(\d+)", name)]
+    return (order.index(name) if name in order else len(order), parts)
+
+
+def wrap_title(name, width=TITLE_WIDTH):
+    """The model name over several lines, broken after hyphens."""
+    lines = [""]
+    for part in re.findall(r"[^-]+-?", name):
+        if lines[-1] and len(lines[-1]) + len(part) > width:
+            lines.append("")
+        lines[-1] += part
+    return "\n".join(lines)
+
+
+def plot_ABX_results(results: dict, tasks, models, title="", filepath=None):
+    """One row per task, one column per model, one line per condition."""
     sns.set_style("whitegrid")
     mpl.rcParams["axes.linewidth"] = 2
     mpl.rcParams["axes.edgecolor"] = "0.9"
 
-    model_names = list(ABX_results)
+    # the layers of each model, in depth order, from any task it has results for
+    layers = {}
+    for (_, model), df in results.items():
+        if model in models:
+            depths = df.drop_duplicates("layer").sort_values("depth")
+            layers[model] = dict(zip(depths["layer"], depths["depth"]))
     # panel width proportional to the number of layers, e.g. a narrow one for CPC
-    n_layers = [ABX_results[m]["layer"].nunique() for m in model_names]
-    width_ratios = [max(n, 2) / max(n_layers) for n in n_layers]
+    n_layers = [len(layers[m]) for m in models]
+    width_ratios = [max(n, 3) / max(n_layers) for n in n_layers]
 
     fig, axs = plt.subplots(
-        1,
-        len(model_names),
-        figsize=(2.25 * sum(width_ratios), 3),
+        len(tasks),
+        len(models),
+        figsize=(2.25 * sum(width_ratios), 2.4 * len(tasks)),
         width_ratios=width_ratios,
         sharey=True,
         squeeze=False,
     )
-    for ax, model_name in zip(axs[0], model_names):
-        results = ABX_results[model_name]
-        for condition, style in CONDITION_STYLES.items():
-            condition_results = results[results["condition"] == condition]
-            if not condition_results.empty:
-                sns.lineplot(
-                    condition_results,
-                    x="depth",
-                    y="accuracy",
-                    ax=ax,
-                    label=condition,
-                    **style,
+    for row, task in enumerate(tasks):
+        for col, model in enumerate(models):
+            ax = axs[row, col]
+            df = results.get((task, model))
+            if df is None:
+                ax.text(
+                    0.5,
+                    0.5,
+                    "no results",
+                    ha="center",
+                    va="center",
+                    color="0.6",
+                    transform=ax.transAxes,
                 )
-        layer_depths = dict(zip(results["layer"], results["depth"]))
-        ax.set_xticks(
-            list(layer_depths.values()), list(layer_depths.keys()), rotation=90
-        )
-        ax.set_xlim(min(layer_depths.values()), max(layer_depths.values()))
-        ax.set_xlabel("")
-        ax.set_ylabel("accuracy")
-        ax.set_ylim(0.45, 1)
-        ax.legend().remove()
-        ax.set_title(model_name, ha="left", x=0)
+            else:
+                for condition, style in CONDITION_STYLES.items():
+                    condition_results = df[df["condition"] == condition]
+                    if not condition_results.empty:
+                        sns.lineplot(
+                            condition_results,
+                            x="depth",
+                            y="accuracy",
+                            ax=ax,
+                            label=condition,
+                            **style,
+                        )
+                ax.legend().remove()
+            depths = layers[model]
+            # every other layer's label, and always the last, so they do not overlap
+            names = list(depths)
+            shown = [n if i % 2 == 0 or i == len(names) - 1 else "" for i, n in enumerate(names)]
+            ax.set_xticks(list(depths.values()), shown if row == len(tasks) - 1 else [])
+            ax.tick_params(axis="x", labelrotation=90, labelsize=8)
+            ax.set_xlim(min(depths.values()), max(depths.values()))
+            ax.set_xlabel("")
+            ax.set_ylim(0.4, 1)
+            ax.set_ylabel(f"{task}\naccuracy" if col == 0 else "")
+            if row == 0:
+                ax.set_title(wrap_title(model), ha="left", x=0, fontsize=10)
 
     # one legend for the whole figure
     handles = {}
-    for ax in axs[0]:
+    for ax in axs.flat:
         for handle, label in zip(*ax.get_legend_handles_labels()):
             handles.setdefault(label, handle)
+    # in the order of CONDITION_STYLES, whichever panel each condition first appeared in
+    handles = {c: handles[c] for c in CONDITION_STYLES if c in handles}
     # legend above the panels, title above the legend, so they never overlap
     fig.legend(
         handles.values(),
@@ -95,43 +135,16 @@ def plot_ABX_results(ABX_results: dict, title="", filepath=None, show=True):
         frameon=False,
         ncol=len(handles),
         loc="lower right",
-        bbox_to_anchor=(1, 0.98),
+        bbox_to_anchor=(1, 1.0),
     )
     if title:
-        fig.suptitle(title.upper(), ha="left", x=0, y=1.12, fontweight="bold")
+        fig.suptitle(title.upper(), ha="left", x=0, y=1.06, fontweight="bold")
+    fig.tight_layout()
     if filepath:
         Path(filepath).parent.mkdir(exist_ok=True, parents=True)
-        plt.savefig(filepath, dpi=300, facecolor="white", bbox_inches="tight")
-    if show:
-        plt.show()
-
-
-def find_results(fast=False):
-    """Return {task: [model names with results for it]}, models in DEFAULT_MODELS order, then the
-    rest."""
-    order = [Path(m).name for m in DEFAULT_MODELS]
-    found = {}
-    pattern = "*/*/fast/abx_*.csv" if fast else "*/*/abx_*.csv"
-    for csv in sorted(RESULT_DIR.glob(pattern)):
-        task_dir = csv.parent.parent if fast else csv.parent
-        model_name, task = task_dir.parent.name, task_dir.name
-        found.setdefault(task, set()).add(model_name)
-    rank = lambda m: (order.index(m) if m in order else len(order), m)
-    return {task: sorted(models, key=rank) for task, models in sorted(found.items())}
-
-
-def stack_images(paths, filepath):
-    """Stack figures vertically into one image, left-aligned on white."""
-    images = [plt.imread(p)[..., :3] for p in paths]  # RGB floats in [0, 1]
-    width = max(image.shape[1] for image in images)
-    padded = [
-        np.pad(
-            image, ((0, 0), (0, width - image.shape[1]), (0, 0)), constant_values=1.0
-        )
-        for image in images
-    ]
-    plt.imsave(filepath, np.concatenate(padded))
-    print(f"Saved {filepath}")
+        fig.savefig(filepath, dpi=200, facecolor="white", bbox_inches="tight")
+        print(f"Saved {filepath}")
+    plt.close(fig)
 
 
 if __name__ == "__main__":
@@ -147,40 +160,33 @@ if __name__ == "__main__":
         "--models",
         nargs="+",
         default=None,
-        help="Model folders to plot; all with results by default",
+        help="Model folders to plot, as columns in this order; all with results by default",
     )
     parser.add_argument(
         "--tasks",
         nargs="+",
         default=None,
-        help="Tasks to plot; all with results by default",
+        help="Tasks to plot, as rows in this order; all with results by default",
     )
-    parser.add_argument(
-        "--title",
-        default="ABX tests, trained models",
-        help="Figure title, followed by the task name",
-    )
+    parser.add_argument("--title", default="ABX tests, trained models", help="Figure title")
     args = parser.parse_args()
 
-    figures_dir = RESULT_DIR / "figures" / ("fast" if args.fast else "")
-    saved = []
-    for task, model_names in find_results(args.fast).items():
-        if args.tasks and task not in args.tasks:
-            continue
-        if args.models:
-            model_names = [m for m in model_names if m in args.models]
-        if not model_names:
-            continue
-        filepath = figures_dir / f"abx_{task}.png"
-        plot_ABX_results(
-            load_results(model_names, task, args.fast),
-            title=f"{args.title}, {task}" + (" (fast)" if args.fast else ""),
-            filepath=filepath,
-            show=False,
-        )
-        plt.close("all")
-        print(f"Saved {filepath}")
-        saved.append(filepath)
-
-    if len(saved) > 1:
-        stack_images(saved, figures_dir / "abx_all.png")
+    results = find_results(args.fast)
+    if not results:
+        raise SystemExit(f"No ABX results in {RESULT_DIR}")
+    # DEFAULT_TASKS first, in their order, then the rest
+    found = {task for task, _ in results}
+    tasks = args.tasks or [t for t in DEFAULT_TASKS if t in found] + sorted(
+        found - set(DEFAULT_TASKS)
+    )
+    models = args.models or sorted({model for _, model in results}, key=model_order)
+    results = {k: v for k, v in results.items() if k[0] in tasks and k[1] in models}
+    if missing := [m for m in models if not any(m == model for _, model in results)]:
+        raise SystemExit(f"No results for {missing} on {tasks}")
+    plot_ABX_results(
+        results,
+        tasks,
+        models,
+        title=args.title + (" (fast)" if args.fast else ""),
+        filepath=RESULT_DIR / "figures" / ("fast" if args.fast else "") / "abx.png",
+    )
