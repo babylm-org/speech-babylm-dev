@@ -253,7 +253,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/54/1b/831f2de4840a25db1dd7b1afea433ccafe6bb10aca07e13264f2079462d0/threadpoolctl-3.8.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/ba/fd/c470857d0dfc5d4c94430658b3eed60fd5292b0bf596a8aae7b9fd66d674/torch-2.14.1-cp312-cp312-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/88/d8/d6d0f896e064aa67377484efef4911cdcc07bce2929474e1417cc0af18c2/torchaudio-2.11.0-cp312-cp312-manylinux_2_28_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/18/38/c443c7856f972372f6b76020bfefe01f4abdcab9e91afd4e9649e7e6ef6b/torchdtw-0.4.2.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/27/51/a036f0fb6122c62c35bc760803c53d2ef8009483c313c62c91fc5854bfb2/torchdtw-0.5.0-cp312-abi3-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/92/74/699d28bed7453dbe40b09d37aab8f6cd75f19a77a77d5ab4588a4f3239e7/torchvision-0.29.2-py3-none-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c1/09/b7012e5bfae67640f268aa584caa80fe1674f6b0da949046b679972c33e3/triton-3.8.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/a1/96/6305b5dc1c0f36d2178f626f7ee778377407f48ea828c6452355033c8017/trl-1.17.1-py3-none-any.whl
@@ -425,7 +425,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/54/1b/831f2de4840a25db1dd7b1afea433ccafe6bb10aca07e13264f2079462d0/threadpoolctl-3.8.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/4b/3c/379349820e9a6e713826de3d0b88f07728541bdcabe2a3afd128871cdc4b/torch-2.14.1-cp312-cp312-macosx_14_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/f1/b1/77658817acacd01a72b714440c62f419efc4d90170e704e8e7a2c0918988/torchaudio-2.11.0-cp312-cp312-macosx_11_0_arm64.whl
-      - pypi: https://files.pythonhosted.org/packages/13/59/64249d5c8beb2520417637fb53fa602af592be230799dcb24400c6806b04/torchdtw-0.4.2-cp312-abi3-macosx_14_0_arm64.whl
+      - pypi: https://files.pythonhosted.org/packages/72/c9/7c3870e024cd3d77a436a4c1ebfe75e85ae9d756719e9e0bccfbea4101ef/torchdtw-0.5.0-cp312-abi3-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/60/ec/ce97c46e5322b588b95be388f2c21878d014ca20838478e7aab59edd128a/torchvision-0.29.2-py3-none-macosx_14_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/a1/96/6305b5dc1c0f36d2178f626f7ee778377407f48ea828c6452355033c8017/trl-1.17.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/fb/f8/80abe5afa45bea5f5a5c310d3084c7f3cf298e19a56f86046d3a3641beab/xxhash-4.1.0-cp312-cp312-macosx_11_0_arm64.whl
@@ -4564,20 +4564,20 @@ packages:
   name: torchaudio
   version: 2.11.0
   sha256: a1cf1acc883bee9cb906a933572fed6a8a933f86ef34e9ea7d803f72317e8c1b
-- pypi: https://files.pythonhosted.org/packages/13/59/64249d5c8beb2520417637fb53fa602af592be230799dcb24400c6806b04/torchdtw-0.4.2-cp312-abi3-macosx_14_0_arm64.whl
+- pypi: https://files.pythonhosted.org/packages/27/51/a036f0fb6122c62c35bc760803c53d2ef8009483c313c62c91fc5854bfb2/torchdtw-0.5.0-cp312-abi3-manylinux_2_28_x86_64.whl
   name: torchdtw
-  version: 0.4.2
-  sha256: 653cc7b3812c62c3f23ff2f59b26c9c4e1952fd3d60fac36a9be66408b1680de
+  version: 0.5.0
+  sha256: 50c082fdebc15b0cfd3d9dd9b513f95b88fdd6ee538cb1b1f7d98c55e924259f
   requires_dist:
   - torch>=2.10.0
   - hypothesis>=6.142.5 ; extra == 'test'
   - numpy>=2.4.4 ; extra == 'test'
   - pytest>=8.4.2 ; extra == 'test'
   requires_python: '>=3.12'
-- pypi: https://files.pythonhosted.org/packages/18/38/c443c7856f972372f6b76020bfefe01f4abdcab9e91afd4e9649e7e6ef6b/torchdtw-0.4.2.tar.gz
+- pypi: https://files.pythonhosted.org/packages/72/c9/7c3870e024cd3d77a436a4c1ebfe75e85ae9d756719e9e0bccfbea4101ef/torchdtw-0.5.0-cp312-abi3-macosx_11_0_arm64.whl
   name: torchdtw
-  version: 0.4.2
-  sha256: 62ceaf0e54e46b6250a6f507dcf266597d9a48a336caea0494e2f411614d82d9
+  version: 0.5.0
+  sha256: 0e17f2737d29894ce74f88d19232ba0afeda049404b2ad14ee051ca4fbc332f7
   requires_dist:
   - torch>=2.10.0
   - hypothesis>=6.142.5 ; extra == 'test'
