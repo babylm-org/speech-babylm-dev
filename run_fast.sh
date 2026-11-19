@@ -32,7 +32,9 @@ TASKS=(
 # ABX: score only these layers, by name (e.g. CNN T6) or position (0 the first, -1 the last)
 # in each model's layers (see its get_representations); empty for all layers
 LAYERS=()
+# files per forward pass
+BATCH_SIZE=32
 
 pixi run python -m scripts.eval.prepare_eval --fast --models "${MODELS[@]}" --tasks "${TASKS[@]}"
 pixi run python -m scripts.eval.run_eval --fast --models "${MODELS[@]}" --tasks "${TASKS[@]}" \
-    ${LAYERS[@]+--layers "${LAYERS[@]}"}
+    --batch_size "$BATCH_SIZE" ${LAYERS[@]+--layers "${LAYERS[@]}"}
