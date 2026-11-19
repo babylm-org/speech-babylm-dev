@@ -34,21 +34,25 @@ def extract(
     out_dir: str | Path = ACTIVATION_DIR,
     batch_size: int = 16,
     file_ids: set | None = None,
+    layers: list[str] | None = None,
 ):
     """
-    Save every layer's activations for the audio files in audio_dir (searched recursively)
-    to <out_dir>/<model name>/<layer>/<file id>.pt, plus info.json for run_abx.py.
+    Save the activations of the audio files in audio_dir (searched recursively) to
+    <out_dir>/<model name>/<layer>/<file id>.pt, plus info.json for run_abx.py: the model's
+    layers ("layers") and the saved ones ("extracted").
 
     Args:
         model (SpeechLM): A loaded model, from model_registry.get_model.
         file_ids (set | None): Only these files (names without extension); all if None.
+        layers (list[str] | None): Only these layers, those the model has: names (e.g. "CNN",
+            "T6") or positions in its layers ("0" the first, "-1" the last); all if None.
         batch_size (int): Files per forward pass. Files are sorted by duration, so padding is
             small, but it still changes the activations slightly; 1 is exact.
     """
     model_dir = Path(out_dir) / model.name
     preprocessor = model.get_preprocessor()
     files = list_audio_files(audio_dir, file_format=file_format, file_ids=file_ids)
-    layers = None
+    all_layers = extracted = None
 
     for start in tqdm.trange(
         0, len(files), batch_size, desc=f"Extracting activations of {len(files)} files"
@@ -68,8 +72,16 @@ def extract(
         representations = model.get_representations(
             inputs.input_values, inputs.get("attention_mask")
         )
-        layers = list(representations)
-        for layer, activations in representations.items():
+        if all_layers is None:  # the first batch tells the model's layers
+            all_layers = list(representations)
+            extracted = (
+                all_layers if layers is None else resolve_layers(layers, all_layers, model.name)
+            )
+            if not extracted:
+                msg = f"{model.name} has none of the layers {layers}"
+                raise ValueError(msg)
+        for layer in extracted:
+            activations = representations[layer]
             layer_dir = model_dir / layer
             layer_dir.mkdir(parents=True, exist_ok=True)
             for audio_file, signal, act in zip(batch_files, signals, activations):
@@ -82,6 +94,29 @@ def extract(
                     layer_dir / f"{audio_file.stem}.pt",
                 )
 
-    info = {"model": model.name, "frequency": model.frame_rate, "layers": layers}
+    info = {
+        "model": model.name,
+        "frequency": model.frame_rate,
+        "layers": all_layers,
+        "extracted": extracted,
+    }
     (model_dir / "info.json").write_text(json.dumps(info, indent=2))
     print(f"Saved activations to {model_dir}")
+
+
+def resolve_layers(layers, available, model_name):
+    """The model's layers among layers: names, or positions in available (e.g. "0", "-1")."""
+    resolved, missing = [], []
+    for layer in layers:
+        if layer.lstrip("-").isdigit():
+            position = int(layer)
+            if -len(available) <= position < len(available):
+                resolved.append(available[position])
+                continue
+        elif layer in available:
+            resolved.append(layer)
+            continue
+        missing.append(layer)
+    if missing:
+        print(f"{model_name} has no layers {missing}, skipped; it has {available}")
+    return list(dict.fromkeys(resolved))  # without repeats, e.g. "0" and "CNN"

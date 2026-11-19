@@ -4,6 +4,14 @@ The packages are listed in `requirements.txt`, and the project supports "Python>
 - With pip: `pip install -r requirements.txt`.
 - with pixi `pixi install`.
 
+Put your [Hugging Face token](https://huggingface.co/settings/tokens) in a `.env` file at the root of the repository, which the scripts read (it is not committed to git):
+
+```
+HF_TOKEN=hf_...
+```
+
+The models and evaluation data are public, so a read token is enough; without one, downloads may be rate-limited. Uploading the evaluation data (`scripts/eval/build_eval_data.py --upload`) needs a token with write access to the BabyLM-community organization.
+
 To set up the evaluation, run `pixi run python -m scripts.eval.prepare_eval --models MODELS --tasks TASKS`, where models and tasks are separated by spaces.
 Add `--fast` to download only the data of the fast evaluation (`run_eval --fast`), about a tenth of the full data.
 The script downloads the model weights and the evaluation data of the specified models and tasks. The evaluation data (audio and test items, for the full and the fast evaluation) is hosted on Hugging Face at [BabyLM-community/Speech-BabyLM-Evals](https://huggingface.co/datasets/BabyLM-community/Speech-BabyLM-Evals), so everyone evaluates on the same data.
@@ -34,7 +42,7 @@ DEFAULT_TASKS = [
 ### Evaluation
 To evaluate models, run `pixi run python -m scripts.eval.run_eval --models MODELS --tasks TASKS` (with the same defaults). Optional arguments are:
 - `--fast`: evaluate on a fixed subset of each task, with fewer examples and speakers. The subsets are fixed, and part of the evaluation data on Hugging Face.
-- `--layers`: score only these layers in ABX, e.g. `--layers T6 T12` (they must exist in all specified models).
+- `--layers`: score only these layers in ABX, by name (e.g. `--layers CNN T6`) or by position in the model's layers (`--layers 0` for each model's first layer, `-1` for its last). A model is scored on those it has (e.g. CPC has no `embeds`, MelHuBERT no `CNN`).
 - `--batch_size`: files per forward pass (default 16).
 - `--keep_activations`: don't delete model activations after ABX evaluation (WARNING: these can take up a lot of space).
 

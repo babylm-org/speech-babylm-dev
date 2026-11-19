@@ -59,7 +59,8 @@ def main():
     parser.add_argument(
         "--layers",
         nargs="+",
-        help="ABX: score only these layers, e.g. CNN T6 T12; all if not given",
+        help="ABX: score only these layers, by name (e.g. CNN T6) or position (0 the first, "
+        "-1 the last), those each model has; all if not given",
     )
     parser.add_argument(
         "--keep_activations",

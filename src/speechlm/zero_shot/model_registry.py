@@ -4,6 +4,7 @@ from .models.cpc import CPC
 from .models.hf import HFModel
 from .models.melhubert import MelHuBERT
 from .models.slam import Slam
+from .models.speechlm_librispeech import SpeechLMLibrispeech
 from .models.spidr import SpidR
 
 
@@ -21,6 +22,14 @@ def get_model(model_name_or_path: str, model_dir="models") -> SpeechLM:
             model = CPC(model_dir)
         case "slprl/slam" | "slprl/slam_scaled" | "slprl/slam_large":
             model = Slam(model_name_or_path, model_dir)
+        case (
+            "SpeechLM-librispeech-k128"
+            | "SpeechLM-librispeech-k256"
+            | "SpeechLM-librispeech-k512"
+            | "SpeechLM-librispeech-k1024"
+        ):
+            k = int(model_name_or_path.removeprefix("SpeechLM-librispeech-k"))
+            model = SpeechLMLibrispeech(k, model_dir)
         case _:
             msg = f"Unsupported model: {model_name_or_path}"
             raise ValueError(msg)

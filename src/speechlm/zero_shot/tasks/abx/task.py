@@ -13,7 +13,6 @@ Results in results/<model>/<task>/[fast/]:
 """
 
 import gc
-import json
 import shutil
 from pathlib import Path
 
@@ -60,7 +59,8 @@ class ABXEval(EvalTask):
         Args:
             batch_size: files per forward pass in extraction
             fast: score the fast subset
-            layers: score only these layers (e.g. ["CNN", "T6"]); all if None
+            layers: score only these layers, those the model has: names (e.g. ["CNN", "T6"]) or
+                positions in the model's layers ("0" the first, "-1" the last); all if None
             keep_activations: do not delete the activations afterwards
         """
         model_name = model.name
@@ -85,20 +85,16 @@ class ABXEval(EvalTask):
                 out_dir=ACTIVATION_DIR,
                 batch_size=batch_size,
                 file_ids=set(read_items(path_items)["#file"]),
+                layers=layers,
             )
             gc.collect()
             torch.cuda.empty_cache()
-            info = json.loads((ACTIVATION_DIR / model_name / "info.json").read_text())
-            if unknown := set(layers or []) - set(info["layers"]):
-                msg = f"{model_name} has no layers {sorted(unknown)}; it has {info['layers']}"
-                raise ValueError(msg)
             evaluate_abx(
                 model_name,
                 path_items,
                 conditions,
                 out_dir,
                 activations_dir=ACTIVATION_DIR,
-                layers=layers,
             )
         finally:
             # also on failure, so no activations are left behind

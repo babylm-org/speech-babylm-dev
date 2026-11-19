@@ -15,10 +15,10 @@ def evaluate_abx(
     conditions: list[ABXCondition],
     out_dir: str | Path,
     activations_dir: str | Path = ACTIVATION_DIR,
-    layers: list[str] | None = None,
 ):
     """
-    Evaluate saved activations on ABX conditions, loading each layer's features once for all conditions.
+    Evaluate the saved activations (every extracted layer) on ABX conditions, loading each
+    layer's features once for all conditions.
 
     Args:
         model_name (str): The model's folder in activations_dir (e.g. "wav2vec2-base").
@@ -26,15 +26,15 @@ def evaluate_abx(
         conditions (list[ABXCondition]): The conditions (see conditions.py) to score on this item file.
         out_dir (str | Path): Results go to <out_dir>/abx_<condition id>.csv.
         activations_dir (str | Path): Where get_activations.py saved the activations.
-        layers (list[str] | None): Only score these layers; all extracted layers if None.
     """
     out_dir = Path(out_dir)
     model_dir = Path(activations_dir) / model_name
     info = json.loads((model_dir / "info.json").read_text())
     results = {condition.id: [] for condition in conditions}
 
+    # depth: the layer's position among all the model's layers, also when only some were saved
     for depth, layer in enumerate(info["layers"]):
-        if layers is not None and layer not in layers:
+        if layer not in info["extracted"]:
             continue
         datasets = {}  # conditions of the same class share the loaded features
         for condition in conditions:
