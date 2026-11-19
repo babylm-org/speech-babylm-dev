@@ -51,7 +51,7 @@ def parse_args():
     )
     parser.add_argument(
         "--output_path",
-        default="output/childes_metadata.csv",
+        default="results/dataset/childes_metadata.csv",
         help="Path to the output CSV file.",
     )
     return parser.parse_args()

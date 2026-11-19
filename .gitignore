@@ -1,5 +1,6 @@
 # Custom
-data/
+/data/*
+!/data/corpus_info_enriched_notes.csv
 # ABX: downloaded weights, extracted activations, scores
 /models/
 /activations/
@@ -7,6 +8,7 @@ data/
 
 /results/*
 !/results/figures/
+!/results/dataset/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
