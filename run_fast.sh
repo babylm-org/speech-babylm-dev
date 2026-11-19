@@ -3,6 +3,10 @@
 # Models: src/speechlm/zero_shot/model_registry.py; tasks: src/speechlm/zero_shot/task_registry.py
 set -euo pipefail
 
+# everything printed also goes to logs/<script>_<date-time>.log
+mkdir -p logs
+exec > >(tee "logs/$(basename "$0" .sh)_$(date +%Y%m%d_%H%M%S).log") 2>&1
+
 MODELS=(
     facebook/wav2vec2-base
     microsoft/wavlm-base
