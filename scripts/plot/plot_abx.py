@@ -1,8 +1,9 @@
 """Plot ABX accuracy per layer in one figure: one row per task, one column per model, as in
 internal_tools/tutorials/2_activation_analyses.ipynb.
 
-Reads results/<model>/<task>/[fast/]abx_*.csv from run_eval: the line is the mean accuracy over
-contrasts (= the overall ABX accuracy), the band its 95% CI. Saves results/figures/[fast/]abx.png.
+Reads results/{full,fast}/<model>/<task>/abx_*.csv from run_eval: the line is the mean accuracy
+over contrasts (= the overall ABX accuracy), the band its 95% CI. Saves
+results/figures/{full,fast}/abx.png.
 
 Usage:
     python -m scripts.plot.plot_abx
@@ -33,10 +34,8 @@ TITLE_WIDTH = 14
 def find_results(fast=False):
     """Return {(task, model name): DataFrame of all its abx_*.csv results}."""
     files = {}
-    pattern = "*/*/fast/abx_*.csv" if fast else "*/*/abx_*.csv"
-    for csv in RESULT_DIR.glob(pattern):
-        task_dir = csv.parent.parent if fast else csv.parent
-        files.setdefault((task_dir.name, task_dir.parent.name), []).append(csv)
+    for csv in (RESULT_DIR / ("fast" if fast else "full")).glob("*/*/abx_*.csv"):
+        files.setdefault((csv.parent.name, csv.parent.parent.name), []).append(csv)
     return {key: pd.concat(pd.read_csv(f) for f in sorted(csvs)) for key, csvs in files.items()}
 
 
@@ -188,5 +187,5 @@ if __name__ == "__main__":
         tasks,
         models,
         title=args.title + (" (fast)" if args.fast else ""),
-        filepath=RESULT_DIR / "figures" / ("fast" if args.fast else "") / "abx.png",
+        filepath=RESULT_DIR / "figures" / ("fast" if args.fast else "full") / "abx.png",
     )

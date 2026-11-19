@@ -1,0 +1,12 @@
+BabySLM accuracy (fast), chance 50%
+╭────────────────────────────┬───────────┬─────────────╮
+│ model                      │   lexical │   syntactic │
+├────────────────────────────┼───────────┼─────────────┤
+│ SpeechLM-librispeech-k128  │     66.7% │       55.1% │
+│ SpeechLM-librispeech-k256  │     66.9% │       51.9% │
+│ SpeechLM-librispeech-k512  │     67.7% │       54.9% │
+│ SpeechLM-librispeech-k1024 │     68.6% │       54.9% │
+│ slam                       │     72.2% │       68.8% │
+│ slam_large                 │     73.5% │       67.8% │
+│ slam_scaled                │     73.7% │       73.8% │
+╰────────────────────────────┴───────────┴─────────────╯

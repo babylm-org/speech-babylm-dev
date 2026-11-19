@@ -7,7 +7,7 @@ Data (see EvalTask; built by scripts/eval/build_eval_data.py):
 
 The fast subset is 10% of the pairs (of each type, for syntactic), every voice kept.
 
-Results in results/<model>/<task>/[fast/]:
+Results in results/{full,fast}/<model>/<task>/:
     pairs.csv  one row per pair and voice, with both log probabilities and its score (1 or 0)
     summary.json, summary.txt  the accuracy, overall and by voice, type, ...
 """

@@ -46,7 +46,7 @@ To evaluate models, run `pixi run python -m scripts.eval.run_eval --models MODEL
 - `--batch_size`: files per forward pass (default 16).
 - `--keep_activations`: don't delete model activations after ABX evaluation (WARNING: these can take up a lot of space).
 
-Evaluation data is stored in `data/evaluation_data/` (a copy of the Hugging Face repo, with the audio unzipped), model activations in `activations/` (deleted after evaluation, unless `--keep_activations` is given), and evaluation results in `results/<model>/<task>/`. Fast evaluation results are stored in a `<task>/fast/` subfolder. Each results folder has the per-item results (`.csv`), the metrics in `summary.json`, and the same metrics as tables in `summary.txt`.
+Evaluation data is stored in `data/evaluation_data/` (a copy of the Hugging Face repo, with the audio unzipped), model activations in `activations/` (deleted after evaluation, unless `--keep_activations` is given), and evaluation results in `results/full/<model>/<task>/`, or `results/fast/<model>/<task>/` for the fast evaluation. Figures and tables (`scripts/plot/`) go to `results/figures/{full,fast}/`. Each results folder has the per-item results (`.csv`), the metrics in `summary.json`, and the same metrics as tables in `summary.txt`.
 
 The folder structure of the evaluation pipeline is given below.
 
@@ -149,7 +149,7 @@ class MyTaskEval(EvalTask):
         self.name = f"my-task-{subset}"
 
     def evaluate(self, model, batch_size=16, fast=False, **_):
-        out_dir = self.results_dir(model, fast)  # results/<model>/<task>/
+        out_dir = self.results_dir(model, fast)  # results/{full,fast}/<model>/<task>/
         if (out_dir / "results.csv").exists():
             return  # results are skipped, so a failed run can be restarted
         data = self.data_dir(fast) / f"{self.subset}.csv"  # in full_eval/ or fast_eval/

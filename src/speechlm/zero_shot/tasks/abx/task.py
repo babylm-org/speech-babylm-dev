@@ -7,7 +7,7 @@ Data (see EvalTask; built by scripts/eval/build_eval_data.py):
     prosodic/<set>.csv, <set>.zip: English lexical stress (HaitongSUN/prosody-abx), one word
         per file, 16 kHz mono
 
-Results in results/<model>/<task>/[fast/]:
+Results in results/{full,fast}/<model>/<task>/:
     abx_<condition id>.csv  one row per layer and contrast (e.g. phone pair)
     summary.json, summary.txt  the accuracy of each layer in each condition
 """

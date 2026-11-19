@@ -71,6 +71,5 @@ class EvalTask(ABC):
         """
 
     def results_dir(self, model: SpeechLM, fast=False):
-        """results/<model>/<task>/, or results/<model>/<task>/fast/ for the fast evaluation."""
-        out_dir = RESULT_DIR / model.name / self.name
-        return out_dir / "fast" if fast else out_dir
+        """results/full/<model>/<task>/, or results/fast/<model>/<task>/ for the fast evaluation."""
+        return RESULT_DIR / ("fast" if fast else "full") / model.name / self.name

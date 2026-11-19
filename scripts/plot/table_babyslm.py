@@ -1,8 +1,8 @@
 """BabySLM accuracy of every model with results, as a table: one row per model, one column per
 task (lexical, syntactic). Chance is 50%.
 
-Reads results/<model>/babyslm-<task>/[fast/]summary.json from run_eval, prints the table and
-saves it to results/figures/[fast/]babyslm.txt, next to the ABX plots.
+Reads results/{full,fast}/<model>/babyslm-<task>/summary.json from run_eval, prints the table
+and saves it to results/figures/{full,fast}/babyslm.txt, next to the ABX plots.
 
 Usage:
     python -m scripts.plot.table_babyslm
@@ -22,11 +22,9 @@ from speechlm.zero_shot.tasks.summary import TABLE_FORMAT
 def load_accuracies(fast=False):
     """Return {model: {task: accuracy}}, e.g. {"slam": {"lexical": 0.71, "syntactic": 0.62}}."""
     accuracies = {}
-    pattern = "*/babyslm-*/fast/summary.json" if fast else "*/babyslm-*/summary.json"
-    for path in RESULT_DIR.glob(pattern):
-        task_dir = path.parent.parent if fast else path.parent
-        task = task_dir.name.removeprefix("babyslm-")
-        model = task_dir.parent.name
+    for path in (RESULT_DIR / ("fast" if fast else "full")).glob("*/babyslm-*/summary.json"):
+        task = path.parent.name.removeprefix("babyslm-")
+        model = path.parent.parent.name
         accuracies.setdefault(model, {})[task] = json.loads(path.read_text())["accuracy"]
     return accuracies
 
@@ -63,7 +61,7 @@ if __name__ == "__main__":
     )
     text = f"BabySLM accuracy{' (fast)' if args.fast else ''}, chance 50%\n{table}\n"
     print(text)
-    out = RESULT_DIR / "figures" / ("fast" if args.fast else "") / "babyslm.txt"
+    out = RESULT_DIR / "figures" / ("fast" if args.fast else "full") / "babyslm.txt"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8")
     print(f"Saved {out}")

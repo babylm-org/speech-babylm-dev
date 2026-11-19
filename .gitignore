@@ -3,9 +3,10 @@ data/
 # ABX: downloaded weights, extracted activations, scores
 /models/
 /activations/
-/results/
 /logs/
 
+/results/*
+!/results/figures/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
