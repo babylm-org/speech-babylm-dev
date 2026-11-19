@@ -39,6 +39,6 @@ LAYERS=()
 # files per forward pass
 BATCH_SIZE=32
 
-pixi run python -m scripts.eval.prepare_eval --fast --models "${MODELS[@]}" --tasks "${TASKS[@]}"
-pixi run python -m scripts.eval.run_eval --fast --models "${MODELS[@]}" --tasks "${TASKS[@]}" \
+uv run python -m scripts.eval.prepare_eval --fast --models "${MODELS[@]}" --tasks "${TASKS[@]}"
+uv run python -m scripts.eval.run_eval --fast --models "${MODELS[@]}" --tasks "${TASKS[@]}" \
     --batch_size "$BATCH_SIZE" ${LAYERS[@]+--layers "${LAYERS[@]}"}

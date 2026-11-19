@@ -1,8 +1,9 @@
 ### Setup
-To set up the codebase, use your favorite package manager (uv, pixi, conda, ...).
-The packages are listed in `requirements.txt`, and the project supports "Python>=3.12".
-- With pip: `pip install -r requirements.txt`.
-- with pixi `pixi install`.
+The project uses [uv](https://docs.astral.sh/uv/) and Python 3.12; the dependencies are in `pyproject.toml`, locked in `uv.lock`.
+- With uv: `uv sync` (creates `.venv/`), then run everything with `uv run`.
+- With pip, in a Python 3.12 environment: `pip install -e .` (without the exact versions of `uv.lock`).
+
+The CHILDES and PhonBank data scripts are in `scripts/dataset/` (e.g. `scripts/dataset/download_childes.sh`).
 
 Put your [Hugging Face token](https://huggingface.co/settings/tokens) in a `.env` file at the root of the repository, which the scripts read (it is not committed to git):
 
@@ -12,7 +13,7 @@ HF_TOKEN=hf_...
 
 The models and evaluation data are public, so a read token is enough; without one, downloads may be rate-limited. Uploading the evaluation data (`scripts/eval/build_eval_data.py --upload`) needs a token with write access to the BabyLM-community organization.
 
-To set up the evaluation, run `pixi run python -m scripts.eval.prepare_eval --models MODELS --tasks TASKS`, where models and tasks are separated by spaces.
+To set up the evaluation, run `uv run python -m scripts.eval.prepare_eval --models MODELS --tasks TASKS`, where models and tasks are separated by spaces.
 Add `--fast` to download only the data of the fast evaluation (`run_eval --fast`), about a tenth of the full data.
 The script downloads the model weights and the evaluation data of the specified models and tasks. The evaluation data (audio and test items, for the full and the fast evaluation) is hosted on Hugging Face at [BabyLM-community/Speech-BabyLM-Evals](https://huggingface.co/datasets/BabyLM-community/Speech-BabyLM-Evals), so everyone evaluates on the same data.
 Without `--models` or `--tasks`, it downloads the default models and tasks, defined in `src/speechlm/zero_shot/config.py`:
@@ -40,7 +41,7 @@ DEFAULT_TASKS = [
 ```
 
 ### Evaluation
-To evaluate models, run `pixi run python -m scripts.eval.run_eval --models MODELS --tasks TASKS` (with the same defaults). Optional arguments are:
+To evaluate models, run `uv run python -m scripts.eval.run_eval --models MODELS --tasks TASKS` (with the same defaults). Optional arguments are:
 - `--fast`: evaluate on a fixed subset of each task, with fewer examples and speakers. The subsets are fixed, and part of the evaluation data on Hugging Face.
 - `--layers`: score only these layers in ABX, by name (e.g. `--layers CNN T6`) or by position in the model's layers (`--layers 0` for each model's first layer, `-1` for its last). A model is scored on those it has (e.g. CPC has no `embeds`, MelHuBERT no `CNN`).
 - `--batch_size`: files per forward pass (default 16).
@@ -163,6 +164,6 @@ class MyTaskEval(EvalTask):
         MyTaskEval(),
 ```
 
-3. Add a `build_my_task(task)` function to `scripts/eval/build_eval_data.py` (and to its `BUILDERS`): it downloads the original data and writes the full and fast files of the task. Then build and upload them with `pixi run python -m scripts.eval.build_eval_data --tasks my-task-<subset> --upload`.
+3. Add a `build_my_task(task)` function to `scripts/eval/build_eval_data.py` (and to its `BUILDERS`): it downloads the original data and writes the full and fast files of the task. Then build and upload them with `uv run python -m scripts.eval.build_eval_data --tasks my-task-<subset> --upload`.
 
 4. (Optional) Add your task to `DEFAULT_TASKS` in `src/speechlm/zero_shot/config.py` to run it by default.
