@@ -10,9 +10,16 @@ Participating in the challenge in the challenge involves two tasks:
 
 Submissions to the challenge can either participate in both tasks (1+2), or make use of our pre-trained encoder baselines and focus on the language modelling task (2).
 We provide a dataset of speech realistically spoken around children, extracted from the CHILDES corpus. This dataset amounts to XXXX hours of audio and includes XXXX words.
-For training models, participants are allowed to supplement this data with non-speech audio, but the total word count must remain the same.
+For the first edition of our challenge, participants are NOT allowed to supplement this data with any additional audio (also no non-speech audio).
 
 Below we provide more information about the two tasks and evaluation pipeline.
+
+## Motivation
+Recent efforts have explored the feasibility of training spoken language models (SLMs) on raw audio only (e.g. [Lakhotia, Kharitonov et al. 2021](https://aclanthology.org/2021.tacl-1.79/); [Higuchi, Fizycki et al., 2026](https://arxiv.org/abs/2611.01143)). These efforts have seen reasonable success when training on clean audiobook recordings or internet-scale datasets, and evaluating on targeted benchmarks for assessing SLM linguistic capacities (e.g. sWUGGY, sBLIMP). 
+
+However, training capable models on developmentally realistic audio data (i.e. conversational speech realistically spoken around children) remains a considerable challenge (e.g. Lavechin et al., [2023](http://doi.org/10.21437/Interspeech.2023-978), [2024](https://doi.org/10.1016/j.cognition.2024.105734)).
+
+With the _Speech_ BabyLM challenge, we provide a publicly accessible dataset of developmentally realistic audio recordings from the CHILDES corpus, along with a set of standardized evaluations. This way, we enable the challenge of modelling language learning from developmentally realistic speech recordings to be addressed by the wider research community.
 
 ## Task 1: Speech encoding
 How should the speech signal be represented? 
@@ -20,7 +27,7 @@ How should the speech signal be represented?
 Encoder models map from raw waveforms to high-dimensional representations, and can be used for (discrete) unit extraction. This provides the input representations that speech LMs operate over.
 Examples of widely used speech encoder models are [Wav2Vec2](https://arxiv.org/abs/2006.11477), [HuBERT](https://arxiv.org/abs/2106.07447), and [SpidR](https://arxiv.org/abs/2512.20308).
 
-A speech encoder submission to the challenge should take in an audio **waveform** and output a **sequence of units** at a sub-phonemic timescale (XXXX ms per unit).
+A speech encoder submission to the challenge should take in an audio **waveform** and output a **sequence of units** at a sub-phonemic timescale: 20 ms per unit.
 
 This could for example exist of the following:
 
